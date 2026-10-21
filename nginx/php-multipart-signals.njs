@@ -8,7 +8,7 @@ const MAX_FORM_KEYS = 512;
 async function checkPhpMultipartSignals(r) {
     if (r.method !== "POST") return;
     const contentType = r.headersIn["Content-Type"] || "";
-    if (!/^multipart\/form-data(?:;|$)/i.test(contentType)) return;
+    if (!/^multipart\/form-data(?:[;, ]|$)/i.test(contentType)) return;
 
     // A multipart request without a usable declared length is an advisory
     // investigation lead, but normal chunked uploads also have this shape.

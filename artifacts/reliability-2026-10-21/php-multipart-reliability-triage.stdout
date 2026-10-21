@@ -1,0 +1,2 @@
+{"priority": "investigate", "reasons": ["request_shape", "origin_memory_error", "matching_request_5xx"], "request_id": "redacted-a"}
+{"priority": "high_priority_review", "reasons": ["session_cookie_anomaly", "same_worker_error_then_cookie_anomaly"], "request_id": "redacted-b"}

@@ -17,7 +17,7 @@
             "SearchString": "multipart/form-data",
             "FieldToMatch": {"SingleHeader": {"Name": "content-type"}},
             "TextTransformations": [{"Priority": 0, "Type": "LOWERCASE"}],
-            "PositionalConstraint": "CONTAINS"
+            "PositionalConstraint": "STARTS_WITH"
           }
         },
         {

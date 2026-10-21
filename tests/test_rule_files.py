@@ -18,6 +18,9 @@ class RuleFileTests(unittest.TestCase):
                              'LOWERCASE' if 'SingleHeader' in match['FieldToMatch'] else 'NONE')
         self.assertEqual(rule['VisibilityConfig']['MetricName'], rule['Name'])
         self.assertEqual(rule['Action'], {'Count': {}})
+        content_type = statements[1]['ByteMatchStatement']
+        self.assertEqual(content_type['SearchString'], 'multipart/form-data')
+        self.assertEqual(content_type['PositionalConstraint'], 'STARTS_WITH')
         self.assertFalse(rule['VisibilityConfig']['SampledRequestsEnabled'])
         self.assertTrue(rule['VisibilityConfig']['CloudWatchMetricsEnabled'])
         body_matches = [s['ByteMatchStatement']['FieldToMatch']['Body']
@@ -35,6 +38,7 @@ class RuleFileTests(unittest.TestCase):
         self.assertIn('id:20260004,phase:2,pass,log,chain', active)
         self.assertEqual(active.count("tag:'php/multipart-observe'"), 4)
         self.assertNotIn('deny,log', active)
+        self.assertEqual(active.count('(?i)^multipart/form-data(?:[;, ]|$)'), 3)
 
     def test_suricata_does_not_use_match_rate_as_part_count(self):
         rules = (ROOT / 'suricata/php-multipart-signals.rules').read_text()

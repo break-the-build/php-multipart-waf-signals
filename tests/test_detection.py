@@ -38,6 +38,21 @@ class DetectionTests(unittest.TestCase):
         self.assertEqual(classify(b"POST / HTTP/1.1\r\nContent-Type: text/plain\r\n\r\n"
                                   + ARMING_SHAPE), STATUS_JUNK)
 
+    def test_php_accepted_comma_boundary_is_detected(self):
+        altered = ARMING_SHAPE.replace(b'multipart/form-data; boundary=',
+                                       b'multipart/form-data,boundary=', 1)
+        self.assertEqual(classify(altered), STATUS_ARMING)
+
+    def test_php_accepted_space_boundary_is_detected(self):
+        altered = ARMING_SHAPE.replace(b'multipart/form-data; boundary=',
+                                       b'multipart/form-data boundary=', 1)
+        self.assertEqual(classify(altered), STATUS_ARMING)
+
+    def test_multipart_suffix_is_not_accepted(self):
+        altered = ARMING_SHAPE.replace(b'multipart/form-data; boundary=',
+                                       b'multipart/form-datax; boundary=', 1)
+        self.assertEqual(classify(altered), STATUS_JUNK)
+
     def test_field_name_text_inside_file_data_is_not_a_field(self):
         altered = BENIGN_UPLOAD.replace(b'D' * 512, b'name="PHPSESSID"' + b'D' * 495)
         self.assertEqual(classify(altered), STATUS_CLEAN)

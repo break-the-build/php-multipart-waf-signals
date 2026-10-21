@@ -13,10 +13,11 @@ The updated rules provide **observation-only signals for selected multipart requ
 | [`nginx/php-multipart-signals.njs`](nginx/php-multipart-signals.njs) | Observation-only njs `js_access` handler using parsed multipart fields | Mock-tested; needs nginx/njs staging validation. Logs do not deny requests. |
 | [`aws/php-multipart-r1.json`](aws/php-multipart-r1.json) | AWS WAF v2 field-name pair example | Uses `Count`. JSON and structural tests pass; AWS API validation pending. The former 5 MiB body-size example was retired because AWS body inspection is capped far below that threshold. |
 | [`scripts/detection_rules.py`](scripts/detection_rules.py) | Offline inert request classifier | Python unit-tested. This is a model, not a deployed WAF rule. |
+| [`scripts/triage_events.py`](scripts/triage_events.py) | Redacted, offline request and outcome correlation | Python unit-tested. It prioritizes review and never proves exploitation. |
 
 [Platform notes](docs/detection-platforms.md) map each rule to its actual coverage. [Tuning guidance](TUNING.md) lists body-inspection and false-positive limits.
 
-For an operational reading order, start with the [practitioner guide](docs/practitioner-guide.md), then review the [platform matrix](docs/detection-platforms.md) and [tuning notes](TUNING.md).
+For an operational reading order, start with the [practitioner guide](docs/practitioner-guide.md), then review the [reliability research](docs/reliability-research-2026-10-21.md), [platform matrix](docs/detection-platforms.md) and [tuning notes](TUNING.md). The latest pass corrects the local multipart Content-Type header gates and adds offline response/origin triage; these improvements do not turn request-shape hits into exploit confirmation.
 
 ## Naming and migration
 

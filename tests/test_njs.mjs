@@ -58,4 +58,16 @@ const pair = request(['PHP_SESSION_UPLOAD_PROGRESS', 'PHPSESSID']);
 await rules.checkPhpMultipartSignals(pair.r);
 assert.deepEqual(pair.status, []);
 assert.match(pair.logs[0], /body session id/);
-console.log('njs access-handler behavior: 11/11 passed');
+for (const type of [
+    'multipart/form-data,boundary=x',
+    'multipart/form-data boundary=x',
+]) {
+    const variant = request(['PHP_SESSION_UPLOAD_PROGRESS', 'PHPSESSID'], 1000, {type});
+    await rules.checkPhpMultipartSignals(variant.r);
+    assert.match(variant.logs[0], /body session id/);
+}
+const suffix = request(['PHP_SESSION_UPLOAD_PROGRESS', 'PHPSESSID'], 1000,
+                       {type: 'multipart/form-datax; boundary=x'});
+await rules.checkPhpMultipartSignals(suffix.r);
+assert.deepEqual(suffix.logs, []);
+console.log('njs access-handler behavior: 14/14 passed');

@@ -41,4 +41,6 @@ For AWS WAF, the supplied rule uses `Count` and CloudWatch metrics, with request
 
 For each route and rule ID, record the engine and version, rule revision, body inspection limit, sample size and period of benign traffic, false-positive count, and the observed action. Replay ordinary file uploads, progress-enabled uploads, large files, chunked requests, and malformed forms through a staging origin. Confirm that the response reaches the application and that no active rule blocks it. A production block decision requires an application-specific false-positive review and a documented rollback owner; this repository has no such approval or measurement.
 
+For redacted event exports, run [`scripts/triage_events.py`](../scripts/triage_events.py) to prioritize review using request matches plus response and origin signals. Its same-worker sequence requires an actual pseudonymous PHP worker identity; a shared client IP is insufficient. See the [reliability research](reliability-research-2026-10-21.md) for input fields, tests and limits.
+
 Keep a short incident record with a redacted request ID, timestamp, route, rule ID, origin PHP version, HTTP status and relevant origin error or worker-restart observation. Avoid session IDs, cookies, form values, and raw files. When investigation ends, retain only the fields and period required by the local retention policy.

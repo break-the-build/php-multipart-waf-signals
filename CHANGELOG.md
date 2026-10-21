@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — parser and outcome reliability research
+
+- Compared benign multipart parsing on local PHP 8.4.4 and 8.4.27. Updated the ModSecurity and njs header gates and the offline classifier for PHP-accepted semicolon, comma and space separators; added invalid-suffix negatives.
+- Tightened the AWS Content-Type condition from `CONTAINS` to `STARTS_WITH`. It remains a broad raw-body observation pending AWS engine validation.
+- Added offline, redacted request/response/origin event triage with same-worker correlation only when a pseudonymous worker identity exists. Client IP is never treated as worker identity.
+- Preserved source hashes, test outputs, a benign parser transcript and a source-by-source reliability assessment.
+
 ## Unreleased — project and rule naming
 
 - Renamed the repository and active rule files around PHP multipart request-shape signals. R1/R3 remain upload-progress field observations; R5/R7 cover broader multipart conditions. No new exploit coverage is implied.

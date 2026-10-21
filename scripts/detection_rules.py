@@ -5,7 +5,7 @@ No execution of any external code, no payload construction: text signatures only
 """
 import re
 
-BOUNDARY = re.compile(rb'(?:^|;)\s*boundary=(?:"([^"]+)"|([^;\s]+))', re.I)
+BOUNDARY = re.compile(rb'(?:^|[;, ])\s*boundary=(?:"([^"]+)"|([^;,\s]+))', re.I)
 FIELD_NAME = re.compile(rb'(?:^|;)\s*name="([^"]*)"', re.I)
 FORM_DISPOSITION = re.compile(rb'^content-disposition:\s*form-data(?:\s*;|\s*$)', re.I)
 
@@ -63,7 +63,7 @@ def classify(body: bytes, threshold_t: int = 40) -> str:
         return STATUS_JUNK
     content_type = next((line.partition(b':')[2].strip() for line in lines[1:]
                          if line.lower().startswith(b'content-type:')), b'')
-    if not content_type.lower().startswith(b'multipart/form-data'):
+    if not re.match(rb'^multipart/form-data(?:[;, ]|$)', content_type, re.I):
         return STATUS_JUNK
     boundary_match = BOUNDARY.search(content_type)
     if not boundary_match:

@@ -1,0 +1,3 @@
+PHP 8.4.4 (cgi-fcgi) (built: Oct 21 2026 02:39:54) (NTS DEBUG)
+multipart/form-data; boundary=edgecase => ["sentinel"]multipart/form-data,boundary=edgecase => ["sentinel"]multipart/form-data boundary=edgecase => ["sentinel"]multipart/form-datax; boundary=edgecase => []PHP 8.4.27 (cgi-fcgi) (built: Oct 21 2026 14:01:08) (NTS DEBUG)
+multipart/form-data; boundary=edgecase => ["sentinel"]multipart/form-data,boundary=edgecase => ["sentinel"]multipart/form-data boundary=edgecase => ["sentinel"]multipart/form-datax; boundary=edgecase => []
