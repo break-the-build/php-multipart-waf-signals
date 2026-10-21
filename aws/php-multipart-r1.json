@@ -1,5 +1,5 @@
 {
-  "Name": "PHPUPArmingFields",
+  "Name": "PHPMultipartProgressFieldPair",
   "Priority": 100,
   "Statement": {
     "AndStatement": {
@@ -43,6 +43,6 @@
   "VisibilityConfig": {
     "SampledRequestsEnabled": false,
     "CloudWatchMetricsEnabled": true,
-    "MetricName": "PHPUPArmingFields"
+    "MetricName": "PHPMultipartProgressFieldPair"
   }
 }

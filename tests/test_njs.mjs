@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
-const source = await readFile(new URL('../nginx/php-uploadprogress.njs', import.meta.url), 'utf8');
+const source = await readFile(new URL('../nginx/php-multipart-signals.njs', import.meta.url), 'utf8');
 const {default: rules} = await import('data:text/javascript,' + encodeURIComponent(source));
 
 function request(fields, length = 1000, options = {}) {
@@ -29,7 +29,7 @@ for (const [fields, length, expected] of [
     [['PHP_SESSION_UPLOAD_PROGRESS'], 5242880, []],
 ]) {
     const test = request(fields, length);
-    await rules.checkUploadProgress(test.r);
+    await rules.checkPhpMultipartSignals(test.r);
     assert.deepEqual(test.status, expected);
     if (fields.includes('PHP_SESSION_UPLOAD_PROGRESS') &&
         (fields.includes('PHPSESSID') || length >= 5242880)) {
@@ -37,25 +37,25 @@ for (const [fields, length, expected] of [
     }
 }
 const invalid = request([], 1000, {error: true});
-await rules.checkUploadProgress(invalid.r);
+await rules.checkPhpMultipartSignals(invalid.r);
 assert.deepEqual(invalid.status, []);
 assert.match(invalid.logs[0], /could not parse multipart form/);
 const get = request(['PHP_SESSION_UPLOAD_PROGRESS'], 1000, {method: 'GET'});
-await rules.checkUploadProgress(get.r);
+await rules.checkPhpMultipartSignals(get.r);
 assert.deepEqual(get.status, []);
 const missingLength = request(['PHP_SESSION_UPLOAD_PROGRESS'], 0);
-await rules.checkUploadProgress(missingLength.r);
+await rules.checkPhpMultipartSignals(missingLength.r);
 assert.deepEqual(missingLength.status, []);
 assert.match(missingLength.logs[0], /without usable Content-Length/);
 const malformedLength = request(['PHP_SESSION_UPLOAD_PROGRESS'], 1000, {contentLength: '1e7'});
-await rules.checkUploadProgress(malformedLength.r);
+await rules.checkPhpMultipartSignals(malformedLength.r);
 assert.deepEqual(malformedLength.status, []);
 assert.match(malformedLength.logs[0], /without usable Content-Length/);
 const unsafeLength = request(['PHP_SESSION_UPLOAD_PROGRESS'], 1000, {contentLength: '9007199254740993'});
-await rules.checkUploadProgress(unsafeLength.r);
+await rules.checkPhpMultipartSignals(unsafeLength.r);
 assert.match(unsafeLength.logs[0], /without usable Content-Length/);
 const pair = request(['PHP_SESSION_UPLOAD_PROGRESS', 'PHPSESSID']);
-await rules.checkUploadProgress(pair.r);
+await rules.checkPhpMultipartSignals(pair.r);
 assert.deepEqual(pair.status, []);
 assert.match(pair.logs[0], /body session id/);
 console.log('njs access-handler behavior: 11/11 passed');

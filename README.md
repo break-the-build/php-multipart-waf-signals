@@ -1,4 +1,4 @@
-# PHP upload-progress request-shape rules
+# PHP multipart request-shape WAF/IDS signals
 
 **Scope correction:** This project began with a cached-`zval *` observation in PHP's session upload-progress callback. That earlier finding was **separate from the vulnerabilities disclosed as CVE-2026-109618 and CVE-2026-109619**; local sanitizer tests did not establish a use-after-free for it. After the disclosures, we revised the WAF and IDS rules and documentation around the published issue classes: OOM/`longjmp` corruption ([CVE-2026-109618](https://github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w)) and cross-request stale state ([CVE-2026-109619](https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp)). Some disclosed paths involve upload progress; others do not.
 
@@ -8,15 +8,28 @@ The updated rules provide **observation-only signals for selected multipart requ
 
 | File | Scope | Status |
 |---|---|---|
-| [`modsecurity/php-uploadprogress.conf`](modsecurity/php-uploadprogress.conf) | Parsed multipart field names, size heuristic and other advisory-inspired observations | R1/R3/R5/R7 log without denial. Needs ModSecurity v3/connector validation. Optional R4 deny-all is commented out. |
-| [`suricata/php-uploadprogress.rules`](suricata/php-uploadprogress.rules) | Field-name pair, size heuristic and multipart part-header inflation alert | Current three-rule file has not been engine-checked. The archived Suricata 7.0.10 syntax transcript applies to the previous four-rule revision. Traffic replay is pending. |
-| [`nginx/php-uploadprogress.njs`](nginx/php-uploadprogress.njs) | Observation-only njs `js_access` handler using parsed multipart fields | Mock-tested; needs nginx/njs staging validation. Logs do not deny requests. |
-| [`aws/php-uploadprogress-r1.json`](aws/php-uploadprogress-r1.json) | AWS WAF v2 field-name pair example | Uses `Count`. JSON and structural tests pass; AWS API validation pending. The former 5 MiB body-size example was retired because AWS body inspection is capped far below that threshold. |
+| [`modsecurity/php-multipart-signals.conf`](modsecurity/php-multipart-signals.conf) | Parsed multipart field names, size heuristic and other advisory-inspired observations | R1/R3/R5/R7 log without denial. Needs ModSecurity v3/connector validation. Optional R4 deny-all is commented out. |
+| [`suricata/php-multipart-signals.rules`](suricata/php-multipart-signals.rules) | Field-name pair, size heuristic and multipart part-header inflation alert | Current three-rule file has not been engine-checked. The archived Suricata 7.0.10 syntax transcript applies to the previous four-rule revision. Traffic replay is pending. |
+| [`nginx/php-multipart-signals.njs`](nginx/php-multipart-signals.njs) | Observation-only njs `js_access` handler using parsed multipart fields | Mock-tested; needs nginx/njs staging validation. Logs do not deny requests. |
+| [`aws/php-multipart-r1.json`](aws/php-multipart-r1.json) | AWS WAF v2 field-name pair example | Uses `Count`. JSON and structural tests pass; AWS API validation pending. The former 5 MiB body-size example was retired because AWS body inspection is capped far below that threshold. |
 | [`scripts/detection_rules.py`](scripts/detection_rules.py) | Offline inert request classifier | Python unit-tested. This is a model, not a deployed WAF rule. |
 
 [Platform notes](docs/detection-platforms.md) map each rule to its actual coverage. [Tuning guidance](TUNING.md) lists body-inspection and false-positive limits.
 
 For an operational reading order, start with the [practitioner guide](docs/practitioner-guide.md), then review the [platform matrix](docs/detection-platforms.md) and [tuning notes](TUNING.md).
+
+## Naming and migration
+
+The project and active rule filenames now use **multipart request shapes** because R5/R7 observe broader multipart behavior, while R1/R3 still match upload-progress fields. Existing rule IDs remain the same. Update deployment references to these active files:
+
+| Former file | Current file |
+|---|---|
+| `modsecurity/php-uploadprogress.conf` | `modsecurity/php-multipart-signals.conf` |
+| `suricata/php-uploadprogress.rules` | `suricata/php-multipart-signals.rules` |
+| `nginx/php-uploadprogress.njs` | `nginx/php-multipart-signals.njs` |
+| `aws/php-uploadprogress-r1.json` | `aws/php-multipart-r1.json` |
+
+The njs `js_access` function is now `checkPhpMultipartSignals`. The ModSecurity tag is now `php/multipart-observe`. The AWS R1 rule and CloudWatch metric name are now `PHPMultipartProgressFieldPair`; update dashboards or alerts that reference the old name. Archived evidence retains its historical filenames.
 
 ## Rule meanings
 
@@ -32,7 +45,7 @@ The PHP configuration setting `session.upload_progress.enabled = Off` (enforced 
 ```sh
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
 node tests/test_njs.mjs
-python3 -m json.tool aws/php-uploadprogress-r1.json > /dev/null
+python3 -m json.tool aws/php-multipart-r1.json > /dev/null
 ```
 
 These checks do **not** run a ModSecurity, Suricata, nginx, or AWS engine. Validate configuration and replay representative benign and matching requests in a staging environment before enabling blocking.
@@ -40,9 +53,9 @@ These checks do **not** run a ModSecurity, Suricata, nginx, or AWS engine. Valid
 For njs 0.9.9 or newer, an example access-phase placement is:
 
 ```nginx
-js_import waf from /absolute/path/php-uploadprogress.njs;
+js_import waf from /absolute/path/php-multipart-signals.njs;
 location /upload/ {
-    js_access waf.checkUploadProgress;
+    js_access waf.checkPhpMultipartSignals;
     proxy_pass http://your_existing_upstream;
 }
 ```

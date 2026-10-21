@@ -1,5 +1,9 @@
 # Ten-pass local verification record
 
+## Multipart naming pass — 2026-10-21
+
+The repository and active rule filenames were retitled around selected PHP multipart request-shape signals. R1/R3 remain upload-progress field observations; R5/R7 describe broader multipart conditions. Existing ModSecurity IDs and Suricata SIDs were preserved. The njs handler, ModSecurity tag, and AWS rule/metric names changed as listed in the README migration table. The baseline and renamed revision both passed 17 Python tests and 11 njs mock cases; outputs, exit codes and file hashes are in `artifacts/php-multipart-rename-*`. This naming pass is not new engine or exploit validation.
+
 ## Later source-alignment revision — 2026-10-21
 
 Starting checkout `ee65068ff0186465bf76074accdc19f86f71ee70` passed the existing verification script: 16 Python tests and seven njs mock cases. The reviewed revision changes default actions to observe/count, removes the same-IP Suricata sequence alert, expands njs behavior checks and retires an ineffective AWS 5 MiB `Body` size example. The isolated copy and target checkout each passed 15 Python tests and nine njs mock cases after that retirement (`artifacts/php-uploadprogress-waf-{aws-fix-final,target-aws-final}.*`). `git diff --check` passed after the final rule transfer. The current ten-pass source snapshot and hashes are saved as `artifacts/php-waf-loop-reviewed-files.tar.gz` and `artifacts/php-waf-loop-manifest.txt`. No public target or exploit code was used.

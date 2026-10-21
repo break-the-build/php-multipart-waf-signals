@@ -1,6 +1,6 @@
-# Practitioner guide: PHP upload-progress observations
+# Practitioner guide: PHP multipart request-shape observations
 
-This pack helps **find unusual upload traffic for review**. It does not identify a successful PHP2Shell attempt, cover every CVE variant, or replace a patched PHP runtime. The shipped ModSecurity and njs rules log, the AWS rule counts, and Suricata rules alert. None blocks by default.
+This pack helps **find selected unusual multipart requests for review**. It does not identify a successful PHP2Shell attempt, cover every CVE variant, or replace a patched PHP runtime. The shipped ModSecurity and njs rules log, the AWS rule counts, and Suricata rules alert. None blocks by default.
 
 ## Start with the runtime
 

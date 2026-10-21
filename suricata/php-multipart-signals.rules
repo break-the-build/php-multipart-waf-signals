@@ -1,5 +1,5 @@
-# Provisional alert-only rules for PHP session upload-progress request shapes
-# plus a CVE-2026-109618 OOM-strategy shape.
+# Provisional alert-only rules for selected PHP multipart request shapes.
+# R1/R3 use upload-progress fields; R5 observes part-header inflation.
 # Validate with suricata -T and representative pcaps before deployment.
 # No counting claim and no use-after-free reproduction is implied.
 

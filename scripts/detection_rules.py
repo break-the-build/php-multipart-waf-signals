@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Detection matcher for PHP session.upload_progress trigger shapes (inert only).
+"""Inert classifier for selected PHP multipart request-shape observations.
 
 No execution of any external code, no payload construction: text signatures only.
 """

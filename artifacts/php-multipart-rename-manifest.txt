@@ -1,0 +1,6 @@
+Base revision: 043bdb25533ac54f30261e8803e7a56fdd5f991a
+Renamed active files (SHA-256):
+7f0b1d24cb7d39000ecca04967ccde6200c73e5433bda5af9ca9585a51c57a0a  aws/php-multipart-r1.json
+00a0c618a6aea2b865e2eac1751bafc17a934b0db2f6644d029f20017148a4e3  modsecurity/php-multipart-signals.conf
+270505e56b74c2244f6989021cc8fa7197d9717affa0473bf11381a7f5f9967f  nginx/php-multipart-signals.njs
+d627a7465eef006b13c74b21f8a605c25f0975062e8c2a82cfe4409535a4bbc0  suricata/php-multipart-signals.rules

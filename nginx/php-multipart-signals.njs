@@ -5,7 +5,7 @@
 const LARGE_BODY_BYTES = 5242880;
 const MAX_FORM_KEYS = 512;
 
-async function checkUploadProgress(r) {
+async function checkPhpMultipartSignals(r) {
     if (r.method !== "POST") return;
     const contentType = r.headersIn["Content-Type"] || "";
     if (!/^multipart\/form-data(?:;|$)/i.test(contentType)) return;
@@ -40,4 +40,4 @@ async function checkUploadProgress(r) {
     }
 }
 
-export default {checkUploadProgress};
+export default {checkPhpMultipartSignals};

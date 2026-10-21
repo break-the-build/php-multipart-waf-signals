@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — project and rule naming
+
+- Renamed the repository and active rule files around PHP multipart request-shape signals. R1/R3 remain upload-progress field observations; R5/R7 cover broader multipart conditions. No new exploit coverage is implied.
+- Preserved rule IDs; renamed the njs handler, ModSecurity observation tag, and AWS R1 rule/metric. Deployment configuration and metric consumers must use the new names.
+- Kept archived test outputs and source snapshots under their original historical names.
+
 ## Unreleased — scope clarification
 
 - Clarified that the earlier cached-pointer upload-progress finding was separate from the disclosed CVE-2026-109618 and CVE-2026-109619 vulnerabilities. The rule pack was revised for the published issue classes while retaining observation-only, request-shape semantics.
