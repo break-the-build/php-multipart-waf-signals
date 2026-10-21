@@ -11,6 +11,7 @@ from detection_rules import (
     OOM_SHAPE_PLAIN,
     STATUS_ARMING,
     STATUS_CLEAN,
+    STATUS_COOKIE_PROGRESS,
     STATUS_GROOM,
     STATUS_JUNK,
     STATUS_OOM,
@@ -24,6 +25,16 @@ class DetectionTests(unittest.TestCase):
 
     def test_arming_shape_detected(self):
         self.assertEqual(classify(ARMING_SHAPE), STATUS_ARMING)
+
+    def test_cookie_carried_session_shape_detected(self):
+        altered = BENIGN_UPLOAD.replace(b'Content-Type:',
+                                        b'Cookie: theme=dark; PHPSESSID=synthetic\r\nContent-Type:', 1)
+        self.assertEqual(classify(altered), STATUS_COOKIE_PROGRESS)
+
+    def test_cookie_name_lookalike_is_clean(self):
+        altered = BENIGN_UPLOAD.replace(b'Content-Type:',
+                                        b'Cookie: NOTPHPSESSID=synthetic\r\nContent-Type:', 1)
+        self.assertEqual(classify(altered), STATUS_CLEAN)
 
     def test_groom_shape_detected(self):
         self.assertEqual(classify(GROOM_SHAPE), STATUS_GROOM)

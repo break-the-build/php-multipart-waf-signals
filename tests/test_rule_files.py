@@ -36,9 +36,11 @@ class RuleFileTests(unittest.TestCase):
         self.assertNotIn('id:20260005', active)
         self.assertIn('id:20260001,phase:2,pass,log,chain', active)
         self.assertIn('id:20260004,phase:2,pass,log,chain', active)
-        self.assertEqual(active.count("tag:'php/multipart-observe'"), 4)
+        self.assertEqual(active.count("tag:'php/multipart-observe'"), 5)
+        self.assertIn('SecRule REQUEST_COOKIES_NAMES "@streq PHPSESSID"', active)
+        self.assertIn('id:20260008,phase:2,pass,log,chain', active)
         self.assertNotIn('deny,log', active)
-        self.assertEqual(active.count('(?i)^multipart/form-data(?:[;, ]|$)'), 3)
+        self.assertEqual(active.count('(?i)^multipart/form-data(?:[;, ]|$)'), 4)
 
     def test_suricata_does_not_use_match_rate_as_part_count(self):
         rules = (ROOT / 'suricata/php-multipart-signals.rules').read_text()

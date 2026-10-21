@@ -1,0 +1,4 @@
+PHP 8.4.26 (cgi-fcgi) (built: Oct 21 2026 03:02:34) (NTS DEBUG)
+{"cookie":true,"post_keys":["PHP_SESSION_UPLOAD_PROGRESS"],"file_keys":["file1"]}
+PHP 8.4.27 (cgi-fcgi) (built: Oct 21 2026 14:01:08) (NTS DEBUG)
+{"cookie":true,"post_keys":["PHP_SESSION_UPLOAD_PROGRESS"],"file_keys":["file1"]}

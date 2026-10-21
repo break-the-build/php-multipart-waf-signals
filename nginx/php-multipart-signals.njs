@@ -33,6 +33,12 @@ async function checkPhpMultipartSignals(r) {
     if (form.has("PHPSESSID")) {
         r.log("PHP upload-progress field with body session id");
     }
+    // Name only; never log the session cookie value. A normal progress form
+    // can match, so this remains an observation rather than a block.
+    const cookie = r.headersIn["Cookie"] || "";
+    if (typeof cookie === "string" && /(?:^|;)\s*PHPSESSID=/.test(cookie)) {
+        r.log("PHP upload-progress field with session cookie");
+    }
 
     // Size-only heuristic; Content-Length is absent for chunked requests.
     if (declared >= LARGE_BODY_BYTES) {

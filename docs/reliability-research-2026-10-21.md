@@ -28,10 +28,10 @@ The ModSecurity and njs **header gates** and offline classifier now accept the t
 |---|---|
 | `request_id`, `timestamp` | Pseudonymous request key and ISO 8601 time with timezone; input must be ordered. |
 | `rule_ids`, `multipart`, `status` | Matched local rule IDs, whether the origin saw multipart, and HTTP response code. |
-| `origin_memory_error`, `session_cookie_anomaly`, `worker_restart` | Boolean signals supplied by trusted origin/response processing. Supply anomaly *flags*, never cookie values or raw errors. |
+| `origin_memory_error`, `origin_fatal_error`, `late_cleanup_diagnostic`, `preinit_ini_diagnostic`, `session_cookie_anomaly`, `worker_restart` | Boolean signals supplied by trusted origin/response processing. Supply anomaly *flags*, never cookie values or raw errors. |
 | `worker_key` | Optional pseudonymous **PHP worker identity**, stable only over the review window. Never substitute client IP. |
 
-Run `python3 scripts/triage_events.py < redacted-events.ndjson`. A rule hit alone yields `observe`. A matching request with an error, 5xx, worker restart or cookie anomaly yields `investigate`. A memory-error event followed by a multipart cookie-anomaly event on the **same worker** within the analyst-selected window yields `high_priority_review`. The default 300 seconds is a review convenience, not an exploit timing bound. `high_priority_review` means inspect evidence promptly; it does not mean compromise or either CVE was confirmed. Event producers must define and validate their own cookie-anomaly and worker-restart logic against their baseline.
+Run `python3 scripts/triage_events.py < redacted-events.ndjson`. A rule hit alone yields `observe`. A matching request with an error, 5xx, worker restart or cookie anomaly yields `investigate`. A memory-error event followed by a multipart cookie-anomaly event on the **same worker**, or a fatal/late-cleanup diagnostic followed by a pre-init INI diagnostic on that worker, yields `high_priority_review` within the analyst-selected window. The default 300 seconds is a review convenience, not an exploit timing bound. `high_priority_review` means inspect evidence promptly; it does not mean compromise or either CVE was confirmed. Event producers must define and validate their own cookie-anomaly and worker-restart logic against their baseline.
 
 ## Verification and remaining gates
 

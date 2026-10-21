@@ -1,0 +1,3 @@
+njs access-handler behavior: 14/14 passed
+{"cross_request_review": {"priority": "high_priority_review", "reasons": ["preinit_ini_diagnostic", "same_worker_producer_then_preinit_diagnostic"], "request_id": "synthetic-same-worker"}, "ordinary_upload": "clean", "progress_field_pair": "arming", "proof_scope": "synthetic detection behavior only"}
+Static and mock checks passed. Engine validation remains pending.

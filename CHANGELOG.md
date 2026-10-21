@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — public PoC audit and broader triage
+
+- Statically inspected three newly found public PoC repositories at pinned revisions. Their cached-pointer and HTTP-error claims lack stock-build sanitizer evidence and do not change CVE attribution. Preserved source snapshots in the companion research workspace.
+- Added log-only R8 for progress-field multipart requests carrying the default session cookie name to ModSecurity, njs and the offline classifier. It is a low-specificity observation; live engine validation remains pending.
+- Extended offline triage to a same-worker fatal/late-cleanup diagnostic followed by an early INI diagnostic, covering a non-multipart CVE-2026-109619 path for investigation.
+- Added a synthetic, offline proof of detection behavior, coverage-gap matrix and test evidence. No third-party PoC was executed and no CVE reproduction is claimed.
+
 ## 1.2.1 — 2026-10-21 (fresh engine validation on the renamed pack)
 - Suricata 7.0.10 `-T` re-run on the current three-rule file
   (`suricata/php-multipart-signals.rules`): 3 loaded, 0 failed; transcript

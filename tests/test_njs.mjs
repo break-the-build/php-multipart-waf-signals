@@ -9,7 +9,7 @@ function request(fields, length = 1000, options = {}) {
     const logs = [];
     const r = {
         method: options.method || 'POST',
-        headersIn: {'Content-Type': options.type || 'multipart/form-data; boundary=x', 'Content-Length': options.contentLength ?? String(length)},
+        headersIn: {'Content-Type': options.type || 'multipart/form-data; boundary=x', 'Content-Length': options.contentLength ?? String(length), 'Cookie': options.cookie || ''},
         async readRequestForm({maxKeys}) {
             assert.equal(maxKeys, 512);
             if (options.error) throw new Error('invalid form');
@@ -70,4 +70,12 @@ const suffix = request(['PHP_SESSION_UPLOAD_PROGRESS', 'PHPSESSID'], 1000,
                        {type: 'multipart/form-datax; boundary=x'});
 await rules.checkPhpMultipartSignals(suffix.r);
 assert.deepEqual(suffix.logs, []);
-console.log('njs access-handler behavior: 14/14 passed');
+const cookiePair = request(['PHP_SESSION_UPLOAD_PROGRESS'], 1000,
+                           {cookie: 'theme=dark; PHPSESSID=synthetic'});
+await rules.checkPhpMultipartSignals(cookiePair.r);
+assert.match(cookiePair.logs[0], /session cookie/);
+const cookieLookalike = request(['PHP_SESSION_UPLOAD_PROGRESS'], 1000,
+                                {cookie: 'NOTPHPSESSID=synthetic'});
+await rules.checkPhpMultipartSignals(cookieLookalike.r);
+assert.deepEqual(cookieLookalike.logs, []);
+console.log('njs access-handler behavior: 16/16 passed');

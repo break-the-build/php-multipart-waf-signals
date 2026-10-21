@@ -10,6 +10,7 @@ FIELD_NAME = re.compile(rb'(?:^|;)\s*name="([^"]*)"', re.I)
 FORM_DISPOSITION = re.compile(rb'^content-disposition:\s*form-data(?:\s*;|\s*$)', re.I)
 
 STATUS_ARMING = "arming"          # progress name + body SID in one multipart POST
+STATUS_COOKIE_PROGRESS = "cookie_progress"  # progress field + default session cookie name
 STATUS_GROOM = "groom"            # repeated t[] parts >= threshold
 STATUS_OOM = "oom"                # progress arm + >=4 large form-data parts (>=128KiB each)
 STATUS_CLEAN = "clean"
@@ -72,6 +73,8 @@ def classify(body: bytes, threshold_t: int = 40) -> str:
     names = [name for name, _, _ in parts]
     progress_name = b'PHP_SESSION_UPLOAD_PROGRESS' in names
     arm = progress_name and b'PHPSESSID' in names
+    cookie_session = any(re.search(rb'(?:^|;)\s*PHPSESSID=', line.partition(b':')[2])
+                         for line in lines[1:] if line.lower().startswith(b'cookie:'))
     groom = names.count(b't[]') >= threshold_t
     if groom:
         return STATUS_GROOM
@@ -81,6 +84,8 @@ def classify(body: bytes, threshold_t: int = 40) -> str:
         return STATUS_OOM
     if arm:
         return STATUS_ARMING
+    if progress_name and cookie_session:
+        return STATUS_COOKIE_PROGRESS
     return STATUS_CLEAN
 
 

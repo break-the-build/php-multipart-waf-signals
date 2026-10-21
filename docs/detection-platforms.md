@@ -7,6 +7,7 @@ The [PHP stale-state advisory](https://github.com/php/php-src/security/advisorie
 | ID | Implemented rule | Meaning | Limit |
 |---|---|---|---|
 | R1 | ModSecurity, Suricata, AWS, njs | Multipart POST with both `PHP_SESSION_UPLOAD_PROGRESS` and `PHPSESSID` field names | Field names and body-inspection windows are deployment dependent. |
+| R8 | ModSecurity, njs, Python classifier | Upload-progress field plus default session cookie name | A legitimate progress form can match; configured names and body parsing vary. Log only. |
 | R2 | Python classifier only | At least 40 repeated `t[]` fields | No native WAF/IDS counting rule is shipped. |
 | R3 | ModSecurity, Suricata, njs | Progress field plus a body-size surrogate of at least 5 MiB | Size is not evidence of OOM or repeated parts; Suricata needs Content-Length. The former AWS body-size rule was retired. |
 | R4 | Optional, commented ModSecurity policy | Deny any upload-progress form on applications that never use it | Denies the entire upload, unlike `session.upload_progress.enabled=Off`. |
@@ -27,7 +28,7 @@ Cloudflare, Akamai, Imperva, Azure WAF, F5, Snort, and Zeek do not have deployab
 
 ## Response and origin telemetry
 
-[Cloudflare's PHP2Shell report](https://blog.cloudflare.com/php-vulnerabilities-waf-protection/) explains why request-only matching is insufficient and describes full-transaction detection using request and response signals. Its [full-transaction article](https://blog.cloudflare.com/full-transaction-waf/) describes response-phase controls. This repository does not replicate those managed detections. The offline [`triage_events.py`](../scripts/triage_events.py) can prioritize a redacted local export with same-transaction and same-worker outcome flags; it is not an inline WAF rule or an exploit validator. For local incident review, correlate multipart anomalies with origin memory-limit/fatal errors, repeated 500 responses, unusual session-cookie behavior and worker restarts. Those are investigation leads from [Wiz's report](https://www.wiz.io/blog/php2shell-php-rce), not independently conclusive indicators. Preserve request ID, origin worker ID if available, status, timestamp and rule match without logging session-cookie values or raw upload contents.
+[Cloudflare's PHP2Shell report](https://blog.cloudflare.com/php-vulnerabilities-waf-protection/) explains why request-only matching is insufficient and describes full-transaction detection using request and response signals. Its [full-transaction article](https://blog.cloudflare.com/full-transaction-waf/) describes response-phase controls. This repository does not replicate those managed detections. The offline [`triage_events.py`](../scripts/triage_events.py) can prioritize a redacted local export with same-transaction and same-worker outcome flags, including a non-multipart fatal/early-INI sequence; it is not an inline WAF rule or an exploit validator. For local incident review, correlate multipart anomalies with origin memory-limit/fatal errors, repeated 500 responses, unusual session-cookie behavior and worker restarts. Those are investigation leads from [Wiz's report](https://www.wiz.io/blog/php2shell-php-rce), not independently conclusive indicators. Preserve request ID, origin worker ID if available, status, timestamp and rule match without logging session-cookie values or raw upload contents.
 
 ## Response-side and workflow hunt signals (vendor-published, 2026-10-21)
 
@@ -43,11 +44,12 @@ network rules above:
 - unexplained PHP worker churn (pool recycle patterns beyond your configured
   `pm.max_requests`).
 
-Role attribution (per the writeup): the upload-progress machinery appears on
-BOTH CVE faces — the pre-init decode is the CVE-2026-109618 producer window,
-and upload-progress is one of the CVE-2026-109619 consumers for other stale
-state families; our R5/R7 shapes detect the strategy, R6 the sequencing
-approximation.
+Role attribution: Wiz documents an upload-progress unserializer case under
+CVE-2026-109618; PHP confirms upload progress as a producer or consumer in
+CVE-2026-109619. R5/R7 are broad OOM request shapes, not proof of either
+case. R6 was removed: an IP address cannot identify a PHP worker.
+
+The [public PoC review](public-poc-review-2026-10-21.md) maps the remaining multipart and non-multipart gaps to the official advisories. In particular, the OPcache cross-worker variant has no defensible request-only signature here.
 
 ## Validation status
 

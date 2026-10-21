@@ -1,0 +1,1 @@
+<?php echo json_encode(["cookie"=>isset($_COOKIE["PHPSESSID"]),"post_keys"=>array_keys($_POST),"file_keys"=>array_keys($_FILES)]); ?>

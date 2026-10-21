@@ -6,6 +6,10 @@ The shipped rules are request-shape heuristics. Start in alert or detection-only
 
 R1 targets multipart forms with both `PHP_SESSION_UPLOAD_PROGRESS` and `PHPSESSID` as body field names. PHP 8.4.4 and 8.4.27 accepted semicolon, comma and space after the multipart media type in a benign local CGI test; ModSecurity and njs header gates, plus the offline classifier, now follow those observed separators. ModSecurity and njs form parsers have not been tested against the nonstandard comma/space forms; a header match may still produce no parsed-field alert. The AWS example matches a media type at the start of the header but remains a raw-byte approximation, as does Suricata. ModSecurity and njs inspect parsed names; Suricata and AWS match body text within their inspection window. A legitimate application may use both. PHP permits a configured upload-progress field name and session name; update rules to match the application's settings. Raw-body middleboxes may inspect only an initial body window, so field order and placement affect visibility.
 
+## Cookie-carried session observation (R8)
+
+R8 logs a progress-field multipart form with a default-named `PHPSESSID` cookie. It covers a shape R1 misses, but normal applications commonly send session cookies on upload forms. Scope by route, change the names if PHP is configured differently, and compare against benign traffic before treating a hit as interesting. It does not log the cookie value or block.
+
 ## Repeated fields (R2)
 
 The Python classifier recognizes 40 or more `t[]` field-name appearances. No shipped ModSecurity or Suricata rule claims to count occurrences within one request. Do not replace this with a match-rate filter or a single-field denial.
@@ -29,4 +33,4 @@ R4 is commented out in the ModSecurity file. Enable it only after confirming the
 
 ## Cross-request investigation
 
-The former Suricata same-IP sequence rule has been removed. The screenshot's elapsed time is one demonstration, not a defensible detection window, and a client IP cannot identify a PHP worker. If origin telemetry includes worker identity, compare request IDs, worker IDs and fatal-error timing during incident review. The offline [triage utility](scripts/triage_events.py) can rank redacted events with those flags; it does not provide Cloudflare's inline full-transaction detection or prove exploitation. The 300-second default is an analyst review window, not a vulnerability timing requirement.
+The former Suricata same-IP sequence rule has been removed. The screenshot's elapsed time is one demonstration, not a defensible detection window, and a client IP cannot identify a PHP worker. If origin telemetry includes worker identity, compare request IDs, worker IDs and fatal-error timing during incident review. The offline [triage utility](scripts/triage_events.py) can rank redacted events with those flags and separately review a later pre-init INI diagnostic after a fatal or late-cleanup diagnostic on the same worker; it does not provide Cloudflare's inline full-transaction detection or prove exploitation. The 300-second default is an analyst review window, not a vulnerability timing requirement.

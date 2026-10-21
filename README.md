@@ -13,11 +13,12 @@ The updated rules provide **observation-only signals for selected multipart requ
 | [`nginx/php-multipart-signals.njs`](nginx/php-multipart-signals.njs) | Observation-only njs `js_access` handler using parsed multipart fields | Mock-tested; needs nginx/njs staging validation. Logs do not deny requests. |
 | [`aws/php-multipart-r1.json`](aws/php-multipart-r1.json) | AWS WAF v2 field-name pair example | Uses `Count`. JSON and structural tests pass; AWS API validation pending. The former 5 MiB body-size example was retired because AWS body inspection is capped far below that threshold. |
 | [`scripts/detection_rules.py`](scripts/detection_rules.py) | Offline inert request classifier | Python unit-tested. This is a model, not a deployed WAF rule. |
+| [`scripts/benign_detection_poc.py`](scripts/benign_detection_poc.py) | Synthetic, offline proof of detection behavior | Exercises benign and matching shapes plus cross-request review; does not reproduce a CVE. |
 | [`scripts/triage_events.py`](scripts/triage_events.py) | Redacted, offline request and outcome correlation | Python unit-tested. It prioritizes review and never proves exploitation. |
 
 [Platform notes](docs/detection-platforms.md) map each rule to its actual coverage. [Tuning guidance](TUNING.md) lists body-inspection and false-positive limits.
 
-For an operational reading order, start with the [practitioner guide](docs/practitioner-guide.md), then review the [reliability research](docs/reliability-research-2026-10-21.md), [platform matrix](docs/detection-platforms.md) and [tuning notes](TUNING.md). The latest pass corrects the local multipart Content-Type header gates and adds offline response/origin triage; these improvements do not turn request-shape hits into exploit confirmation.
+For an operational reading order, start with the [practitioner guide](docs/practitioner-guide.md), [public PoC review and coverage map](docs/public-poc-review-2026-10-21.md), then review the [reliability research](docs/reliability-research-2026-10-21.md), [platform matrix](docs/detection-platforms.md) and [tuning notes](TUNING.md). The latest pass corrects the local multipart Content-Type header gates and adds offline response/origin triage; these improvements do not turn request-shape hits into exploit confirmation.
 
 ## Naming and migration
 
@@ -38,6 +39,9 @@ The njs `js_access` function is now `checkPhpMultipartSignals`. The ModSecurity 
 - **R2:** at least 40 repeated `t[]` names in the offline Python model. No shipped engine rule counts these within one request.
 - **R3:** upload-progress field plus a body of at least 5 MiB. This is only a size heuristic, not an OOM detector.
 - **R4:** optional denial of all progress-field uploads where the application never uses the feature. It is disabled by default and would reject the entire request.
+- **R5:** multipart part-header inflation or deeply nested field-name observation. Thresholds are arbitrary and need local validation.
+- **R7:** multipart POST without a usable declared Content-Length. Chunked uploads can be legitimate.
+- **R8:** upload-progress form field plus a `PHPSESSID` **cookie** (ModSecurity, njs and offline classifier). This is common in legitimate progress forms; it logs without denial and is not a CVE signature.
 
 The PHP configuration setting `session.upload_progress.enabled = Off` (enforced administratively, then restart workers) disables progress tracking while ordinary uploads continue. The primary research workspace tested that feature-path control on five local PHP builds. Per PHP's advisory this blocks the confirmed upload-progress producing/consuming operations of CVE-2026-109619, but it is not a complete mitigation for other paths or CVE-2026-109618.
 
@@ -45,6 +49,7 @@ The PHP configuration setting `session.upload_progress.enabled = Off` (enforced 
 
 ```sh
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
+python3 scripts/benign_detection_poc.py
 node tests/test_njs.mjs
 python3 -m json.tool aws/php-multipart-r1.json > /dev/null
 ```

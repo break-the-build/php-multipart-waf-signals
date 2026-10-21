@@ -1,0 +1,32 @@
+test_arming_shape_detected (test_detection.DetectionTests) ... ok
+test_benign_upload_is_clean (test_detection.DetectionTests) ... ok
+test_boundary_token_inside_file_data_is_not_a_part (test_detection.DetectionTests) ... ok
+test_field_name_text_inside_file_data_is_not_a_field (test_detection.DetectionTests) ... ok
+test_file_is_inert (test_detection.DetectionTests) ... ok
+test_groom_shape_detected (test_detection.DetectionTests) ... ok
+test_multipart_suffix_is_not_accepted (test_detection.DetectionTests) ... ok
+test_multipart_word_only_in_payload_is_junk (test_detection.DetectionTests) ... ok
+test_non_form_data_disposition_does_not_count_as_field (test_detection.DetectionTests) ... ok
+test_non_multipart_is_junk (test_detection.DetectionTests) ... ok
+test_non_post_multipart_is_junk (test_detection.DetectionTests) ... ok
+test_oom_churn_shape_detected (test_detection.DetectionTests) ... ok
+test_php_accepted_comma_boundary_is_detected (test_detection.DetectionTests) ... ok
+test_php_accepted_space_boundary_is_detected (test_detection.DetectionTests) ... ok
+test_plain_large_upload_is_not_oom (test_detection.DetectionTests) ... ok
+test_progress_only_body_is_clean (test_detection.DetectionTests) ... ok
+test_query_parameter_is_not_a_body_field (test_detection.DetectionTests) ... ok
+test_aws_rule_has_valid_top_level_shape_and_case_matching (test_rule_files.RuleFileTests) ... ok
+test_modsecurity_uses_parsed_multipart_names (test_rule_files.RuleFileTests) ... ok
+test_suricata_does_not_use_match_rate_as_part_count (test_rule_files.RuleFileTests) ... ok
+test_cookie_value_is_never_emitted (test_triage_events.TriageTests) ... ok
+test_different_worker_and_expired_window_do_not_correlate (test_triage_events.TriageTests) ... ok
+test_request_shape_alone_is_only_observe (test_triage_events.TriageTests) ... ok
+test_same_transaction_origin_evidence_is_investigate (test_triage_events.TriageTests) ... ok
+test_same_worker_sequence_is_higher_priority (test_triage_events.TriageTests) ... ok
+test_shared_client_ip_is_not_worker_identity (test_triage_events.TriageTests) ... ok
+test_unsorted_input_is_rejected (test_triage_events.TriageTests) ... ok
+
+----------------------------------------------------------------------
+Ran 27 tests in 0.017s
+
+OK
