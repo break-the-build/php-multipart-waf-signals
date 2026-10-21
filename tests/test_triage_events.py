@@ -48,6 +48,39 @@ class TriageTests(unittest.TestCase):
         result = list(triage(rows, window_seconds=300))
         self.assertTrue(all(row['priority'] != 'high_priority_review' for row in result))
 
+    def test_nonmultipart_fatal_then_preinit_diagnostic_is_reviewed(self):
+        rows = [event('producer', 0, multipart=False, worker_key='worker-a',
+                      origin_fatal_error=True),
+                event('consumer', 45, multipart=False, worker_key='worker-a',
+                      preinit_ini_diagnostic=True)]
+        result = list(triage(rows))
+        self.assertEqual(result[-1]['priority'], 'high_priority_review')
+        self.assertIn('same_worker_producer_then_preinit_diagnostic', result[-1]['reasons'])
+
+    def test_late_cleanup_then_preinit_diagnostic_is_reviewed(self):
+        rows = [event('producer', 0, multipart=False, worker_key='worker-a',
+                      late_cleanup_diagnostic=True),
+                event('consumer', 45, multipart=False, worker_key='worker-a',
+                      preinit_ini_diagnostic=True)]
+        self.assertEqual(list(triage(rows))[-1]['priority'], 'high_priority_review')
+
+    def test_ini_diagnostic_requires_same_worker_and_recent_producer(self):
+        rows = [event('producer', 0, multipart=False, worker_key='worker-a',
+                      origin_fatal_error=True),
+                event('other', 45, multipart=False, worker_key='worker-b',
+                      preinit_ini_diagnostic=True),
+                event('late', 360, multipart=False, worker_key='worker-a',
+                      preinit_ini_diagnostic=True)]
+        self.assertTrue(all(row['priority'] != 'high_priority_review'
+                            for row in triage(rows, window_seconds=300)))
+
+    def test_ini_diagnostic_without_worker_identity_does_not_correlate(self):
+        rows = [event('producer', 0, multipart=False, client_ip='192.0.2.1',
+                      origin_fatal_error=True),
+                event('consumer', 45, multipart=False, client_ip='192.0.2.1',
+                      preinit_ini_diagnostic=True)]
+        self.assertTrue(all(row['priority'] != 'high_priority_review' for row in triage(rows)))
+
     def test_cookie_value_is_never_emitted(self):
         rows = [event('r1', 0, session_cookie_anomaly=True, raw_cookie='private-value')]
         result = list(triage(rows))

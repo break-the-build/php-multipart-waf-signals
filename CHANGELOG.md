@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.1 — 2026-10-21 (fresh engine validation on the renamed pack)
+- Suricata 7.0.10 `-T` re-run on the current three-rule file
+  (`suricata/php-multipart-signals.rules`): 3 loaded, 0 failed; transcript
+  refreshed in-place (`suricata/syntax-check-suricata7.txt`).
+- Updated platform notes and README status to attribute the fresh check to
+  this revision; the server/help-fields unchanged. Traffic replay remains the
+  open gate before switching rules out of observational mode.
+
+
 ## Unreleased — parser and outcome reliability research
 
 - Compared benign multipart parsing on local PHP 8.4.4 and 8.4.27. Updated the ModSecurity and njs header gates and the offline classifier for PHP-accepted semicolon, comma and space separators; added invalid-suffix negatives.

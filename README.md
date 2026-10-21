@@ -9,7 +9,7 @@ The updated rules provide **observation-only signals for selected multipart requ
 | File | Scope | Status |
 |---|---|---|
 | [`modsecurity/php-multipart-signals.conf`](modsecurity/php-multipart-signals.conf) | Parsed multipart field names, size heuristic and other advisory-inspired observations | R1/R3/R5/R7 log without denial. Needs ModSecurity v3/connector validation. Optional R4 deny-all is commented out. |
-| [`suricata/php-multipart-signals.rules`](suricata/php-multipart-signals.rules) | Field-name pair, size heuristic and multipart part-header inflation alert | Current three-rule file has not been engine-checked. The archived Suricata 7.0.10 syntax transcript applies to the previous four-rule revision. Traffic replay is pending. |
+| [`suricata/php-multipart-signals.rules`](suricata/php-multipart-signals.rules) | Field-name pair, size heuristic and multipart part-header inflation alert | Engine-checked: Suricata 7.0.10 `-T` — 3/3 loaded, 0 failed, transcript `suricata/syntax-check-suricata7.txt` (this revision). Traffic replay pending. |
 | [`nginx/php-multipart-signals.njs`](nginx/php-multipart-signals.njs) | Observation-only njs `js_access` handler using parsed multipart fields | Mock-tested; needs nginx/njs staging validation. Logs do not deny requests. |
 | [`aws/php-multipart-r1.json`](aws/php-multipart-r1.json) | AWS WAF v2 field-name pair example | Uses `Count`. JSON and structural tests pass; AWS API validation pending. The former 5 MiB body-size example was retired because AWS body inspection is capped far below that threshold. |
 | [`scripts/detection_rules.py`](scripts/detection_rules.py) | Offline inert request classifier | Python unit-tested. This is a model, not a deployed WAF rule. |

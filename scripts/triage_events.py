@@ -23,12 +23,14 @@ def _timestamp(value):
 def triage(events, window_seconds=300):
     """Yield metadata-only review leads in input order.
 
-    Cross-request escalation requires a pseudonymous PHP worker key and a
-    prior origin memory error. Client IP is never used as a worker proxy.
+    Cross-request escalation requires a pseudonymous PHP worker key. Client
+    IP is never used as a worker proxy.
     """
     if window_seconds <= 0:
         raise ValueError('window_seconds must be positive')
     prior_error = {}
+    prior_fatal = {}
+    prior_cleanup = {}
     previous_time = None
     for event in events:
         if not isinstance(event, dict):
@@ -53,18 +55,32 @@ def triage(events, window_seconds=300):
 
         shape = bool(rule_ids)
         memory_error = event.get('origin_memory_error') is True
+        fatal_error = event.get('origin_fatal_error') is True
+        cleanup_diagnostic = event.get('late_cleanup_diagnostic') is True
+        ini_diagnostic = event.get('preinit_ini_diagnostic') is True
         cookie_anomaly = event.get('session_cookie_anomaly') is True
         restart = event.get('worker_restart') is True
         multipart = event.get('multipart') is True
         prior = prior_error.get(worker) if worker else None
         same_worker_sequence = (cookie_anomaly and multipart and prior is not None
                                 and 0 <= now - prior <= window_seconds)
+        earlier_fatal = prior_fatal.get(worker) if worker else None
+        earlier_cleanup = prior_cleanup.get(worker) if worker else None
+        same_worker_ini_sequence = (ini_diagnostic and
+                                    any(time is not None and 0 <= now - time <= window_seconds
+                                        for time in (earlier_fatal, earlier_cleanup)))
 
         reasons = []
         if shape:
             reasons.append('request_shape')
         if memory_error:
             reasons.append('origin_memory_error')
+        if fatal_error:
+            reasons.append('origin_fatal_error')
+        if cleanup_diagnostic:
+            reasons.append('late_cleanup_diagnostic')
+        if ini_diagnostic:
+            reasons.append('preinit_ini_diagnostic')
         if shape and status is not None and status >= 500:
             reasons.append('matching_request_5xx')
         if cookie_anomaly:
@@ -73,11 +89,15 @@ def triage(events, window_seconds=300):
             reasons.append('worker_restart')
         if same_worker_sequence:
             reasons.append('same_worker_error_then_cookie_anomaly')
+        if same_worker_ini_sequence:
+            reasons.append('same_worker_producer_then_preinit_diagnostic')
 
         if reasons:
-            if same_worker_sequence:
+            if same_worker_sequence or same_worker_ini_sequence:
                 priority = 'high_priority_review'
-            elif (shape and (memory_error or cookie_anomaly or restart or (status or 0) >= 500)
+            elif (shape and (memory_error or fatal_error or cookie_anomaly or restart
+                             or (status or 0) >= 500)
+                  or (memory_error and restart)
                   or cookie_anomaly):
                 priority = 'investigate'
             else:
@@ -86,6 +106,10 @@ def triage(events, window_seconds=300):
 
         if memory_error and worker:
             prior_error[worker] = now
+        if fatal_error and worker:
+            prior_fatal[worker] = now
+        if cleanup_diagnostic and worker:
+            prior_cleanup[worker] = now
 
 
 def main(argv=None):
