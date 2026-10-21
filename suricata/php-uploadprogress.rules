@@ -1,0 +1,32 @@
+# PHP session.upload_progress UAF pair (CVE-2026-109618 / CVE-2026-109619)
+# Defensive detection only. No weaponized content.
+# Requires http request-body inspection (MPM) enabled.
+
+# Stage 1 — arming shape: progress key AND session id inside the same multipart body
+alert http $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"PHP UPLOADPROGRESS arming: progress key + body sid in multipart POST"; \
+    flow:established,to_server; \
+    http.method; content:"POST"; \
+    http.request_body; \
+    content:"name="; \
+    pcre:"/(?i)name=.PHP_SESSION_UPLOAD_PROGRESS./"; \
+    pcre:"/(?i)name=.PHPSESSID./"; \
+    detection_filter:track by_src, count 1, seconds 60; \
+    classtype:web-application-attack; flowbits:isnotset,up619_dependent; flowbits:set,up619_arming; sid:20260001; rev:1;)
+
+# Stage 2 — groom shape: many repeated same-named t[] parts (bundle's reclaim stage)
+alert http $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"PHP UPLOADPROGRESS groom: repeated t[] parts >=40"; \
+    flow:established,to_server; \
+    http.method; content:"POST"; \
+    http.request_body; \
+    pcre:"/(?i)name=.t\[\]./"; \
+    detection_filter:track by_dst, count 40, seconds 30; \
+    classtype:web-application-attack; flowbits:isset,up619_arming; sid:20260002; rev:1;)
+
+# Stage 2 negative (groom without prior arming in the same flow is high-value standalone too)
+alert http $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"PHP UPLOADPROGRESS groom: repeated t[] parts >=100 standalone"; \
+    flow:established,to_server; \
+    http.method; content:"POST"; \
+    http.request_body; \
+    pcre:"/(?i)name=.t\[\]./"; \
+    detection_filter:track by_dst, count 100, seconds 30; \
+    classtype:web-application-attack; sid:20260003; rev:1;)
