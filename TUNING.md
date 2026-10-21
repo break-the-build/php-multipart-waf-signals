@@ -27,6 +27,25 @@
   `a[]`, `f1`); add a comma-separated variant list as needed. Keep the
   *identical part size* property — it is the fingerprint, names are not.
 
+## Rule 20260004 / Stage 3-4 (OOM arm + R4 stopgap, corrected model)
+
+- **`memory_limit` knob:** the OOM arm needs a multipart body large enough to
+  trip `memory_limit` inside the rfc1867 window. The arm shape (velocity of the
+  leak-v2 model) was 20 × 262144 B; our defaults at Suricata proxy (Content-Length ≥ 10,000,000),
+  ModSecurity `REQUEST_BODY_LENGTH @ge 5242880` (5 MiB), and nginx njs
+  `body.length >= 5 MiB + progress field` are deliberately above the shape.
+  If a production app posts MULTI-MB upload progress traffic legitimately, the
+  OOM rule will false-positive — scope it by URI, raise the threshold, or
+  prefer the R4/stopgap lane (INI off) for those apps.
+- **Body-inspection honesty:** a multi-MB body will not be fully visible to most
+  WAF middleboxes. All OOM rules above are *surrogates* sized for what the
+  parser sees — the real fix remains the INI stopgap; the rules exist as
+  pre-patch tripwires. Validate the Content-Length subway against chunked
+  transfer (no CL header) — chunked bodies slip past the surrogate.
+- nginx njs `r.requestText` buffers in full; for multi-MB buffers keep your
+  `client_max_body_size` caps sensible or migrate the OOM check to
+  `js_body_filter` on modern njs.
+
 ## Timing (S3/S5, needs flow tooling — not included here)
 
 Long pauses inside a single TCP flow followed by continued part bytes are
