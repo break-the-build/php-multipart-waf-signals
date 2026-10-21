@@ -41,3 +41,36 @@ TI destroy old _SESSION tbl=…19f40              <- track_init destroys the old
 - A candidate defensive patch (per-use re-lookup instead of caching) exists in the
   research workspace as a demonstration; it is superseded for the CVE classes by the
   released upstream patch and kept only as a defect exhibit.
+
+## Vendor demo intel (post-disclosure, from the published Wiz demo frame, 2026-10-21)
+
+The tool shown in the coordinated-disclosure demo (php2shell, credited to Wiz Research,
+v1.5.13) reconstructs the confirmed chain as:
+
+1. **Worker capture -> ZendMM map -> image pointers -> PHP global overwrite.**
+   The disclosure primitive is a *small* live memory window (256 bytes shown), from which
+   the chain derives the allocator main chunk, module text/rodata image pointers, and a
+   runtime-resolved write target. No ROP gadgets are used ("GADGETS: none") — the control
+   primitive is a **PHP global-pointer override**.
+2. **Write target: `PG(auto_prepend_file)`.** The chain re-points a core global to an
+   in-memory payload — a *post-exploitation* persistence/execution channel that runs before
+   application code on the next request. Malware-defense consequence:
+   - a WAF cannot see this; only process- or transaction-level signals catch it
+     (worker spawning shells / anomalous execution, per our detection gates;
+     vendor end-to-end tooling uses response-side full-transaction rules).
+   - `pm.max_requests=1` (worker recycling) clears any carried-over stale state;
+   - cgroup kill policy limits persistence to one worker per the vendor note;
+   - the INI `auto_prepend_file` itself is not the vector (memory-level override);
+     auditing its configured value still adds little, but watch worker child
+     process behavior.
+3. **Timing envelope: 65.2 s end-to-end, with a ~48 s first-stage dwell** before memory
+   capture — a long producer->consumer interval across requests. Our R6 sequencing rule
+   (Suricata xbits-by-source, `expire 300`) spans this envelope; operators wanting tighter
+   windows can tune 120–300 s and remain inside the demonstrated envelope.
+4. **Pre-auth RCE confirmed** with `uid=33(www-data)` and `/usr/bin/id` used as the
+   benign fixed-command proof — the demo does not ship a payload of its own beyond the
+   runtime-resolved override gadget.
+
+Defensive reading: nothing here changes our rule semantics; it strengthens the reasoning
+why our rules stay in observe/alert mode (detection of *opportunity shapes*), while
+blocking confidence belongs to the PHP update plus transaction- or process-level signals.

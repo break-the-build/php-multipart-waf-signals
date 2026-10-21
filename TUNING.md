@@ -26,3 +26,15 @@ R4 is commented out in the ModSecurity file. Enable it only after confirming the
 - Replay benign uploads, both-field uploads, large uploads, malformed forms, and chunked requests through a staging instance.
 - Record rule IDs, expected action, actual action, false positives, body-inspection limit, and any parser errors.
 - Reassess these stopgap rules after official PHP advisories and fixed releases are published.
+
+## R6 sequencing window (CVE-2026-109619 approximation)
+
+- The published Wiz demo envelope runs 65.2 s end-to-end with a ~48 s dwell between the
+  first (state-publishing) request and the memory-capture/consumer sequence. Our shipped
+  xbits expiry of 300 s covers it with margin. Tune between 120–300 s: shorter loses the
+  demonstrated dwell; longer raises correlation noise from unrelated traffic sharing a
+  source IP (NAT-heavy users).
+- Remember the honest boundary of R6: source IP ≠ worker identity. It is a hunt signal for
+  coordinated sequencing, not evidence a specific worker reused state. Attack-pairing that
+  uses proxies or CDNs (a resolver-churn setup) will also break this approximation — the
+  same caveat as the vendor's "must reach the same worker".
