@@ -1,6 +1,13 @@
 # Changelog
 
-## 1.1.0 — 2026-10-21 (post-advisory push pending)
+## 1.1.0 — 2026-10-21 (pushed ahead of the 14:00 UTC advisory)
+
+Published pre-release notes on timing: the corrected threat model below is a
+*reduction* of what the public leak page (jackalsyn.com 2026-10-21 correction)
+already discloses, plus defensive detection rules for already-public request
+shapes. No new technical detail beyond public state; see README "Status &
+accuracy". Findings-specific deltas from our lab memory will follow in a
+post-advisory (post-14:00 UTC) commit once the official patch text lands.
 
 - **Corrected threat model.** Cached-pointer path confirmed non-UAF (Z_TRY_ADDREF
   holds the array; lab + independent leak-side correction now agree). RCE status

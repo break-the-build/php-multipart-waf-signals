@@ -18,10 +18,14 @@ cross-checked against the public technical writeup.
   leak-side correction (Jackalsyn 2026-10-21) now publishes the same conclusion.
 - The corrected public understanding points at a **cross-request
   `BG(unserialize)`/`BG(serialize)` orphan** reachable via a
-  `memory_limit` bailout inside the pre-RINIT session machinery
-  (prefork-style SAPIs only; php-fpm/CGI/LSAPI exit on the fatal) —
+  `memory_limit` bailout inside the pre-RINIT session machinery —
   memory-safety (**CVSS v4.0 5.3 Medium** in the corrected public page),
   explicitly **not demonstrated as code execution** by any public source.
+  Scope claims (prefork-style SAPIs only; php-fpm/CGI/LSAPI exit on the
+  fatal) come from the same source's SAPI matrix and are **not independently
+  confirmed by this lab**; our own runs reproduced the pre-RINIT fatal
+  reachability but not the claimed persistence (per-request BG state is
+  zeroed in every pinned tree we reviewed).
 - RCE severity continues to stand on the vendor's own rating (CVSS v4.0 9.2
   ×2) and the watchTowr reproduction statement — attributed, not reproduced
   here. No working public recreation exists to this timestamp.

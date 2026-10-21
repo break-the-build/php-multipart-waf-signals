@@ -1,8 +1,10 @@
 # Detection rule pack v2 — multi-platform (WAF + NIDS)
 
-Translator layer for the signature inventory in `docs/detection-uploadprogress.md`
-(corrected threat model: cached-pointer chain dead at addref; OOM-churn orphan arm;
-post-patch posture pending the 2026-10-21 14:00 UTC release — see `#post-patch`).
+Translator layer for the shape semantics in this repository
+(`scripts/detection_rules.py` classifier, `TUNING.md` thresholds and
+false-positive notes). Same shape inventory under the corrected threat model
+(cached-pointer chain dead at addref; OOM-churn orphan arm; see README
+"Status & accuracy").
 
 Boundary (per AGENTS.md): inert request shapes only, no payloads, no scanner logic.
 Every snippet below encodes STRUCTURE. Platform templates that could not be
