@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased — ten-pass practitioner review
+
+- Scored the rule pack against source accuracy, semantics, specificity, coverage, safe deployment, reproducibility and practitioner explanation. Added a runtime-first practitioner guide and a ten-pass evidence record.
+- Kept shipped rules observational and improved ModSecurity event messages, njs declared-length validation and AWS sampled-request privacy defaults.
+- Added structural safety checks for active actions and parser regressions for boundary-like file data and invalid form dispositions. Current engine integrations and representative traffic replay remain pending.
+
+## Unreleased — Wiz, Google and Cloudflare source-alignment pass
+
+- Reconciled Wiz's named PHP2Shell variants with PHP's broader advisories and Google Cloud's fixed-version guidance. Documented that the WordPress OPcache demonstration is outside this upload-progress rule pack's coverage.
+- Changed the AWS field-pair example to `Count`, ModSecurity R1/R3 to `pass,log`, and njs to observation-only logging. Parser failures and absent Content-Length no longer cause njs to reject requests by default.
+- Retired the AWS 5 MiB `Body` size example: AWS's body inspection window is at most 64 KiB, so its `CONTINUE` size comparison cannot provide the claimed 5 MiB signal. The former JSON is retained in Git history.
+- Removed Suricata's same-source-IP follow-up alert. It could not establish same-worker reuse or a stale-state producer and could create substantial noise behind NAT or proxies.
+- Added Cloudflare's request-plus-response detection model to the platform guide, with origin telemetry suggestions for incident review. Corrected the Suricata validation status: the archived `-T` transcript applies to the previous four-rule file, not this revision.
+- Expanded mock and structural checks. Staging engine validation and benign-traffic replay remain pending.
+
 ## 1.2.0 — 2026-10-21 (official advisory day)
 
 - Added the official patch-day mapping: CVE-2026-109618 (OOM `longjmp`

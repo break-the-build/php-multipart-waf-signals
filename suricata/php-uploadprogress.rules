@@ -1,6 +1,5 @@
 # Provisional alert-only rules for PHP session upload-progress request shapes
-# plus CVE-2026-109618 OOM-strategy shapes and a CVE-2026-109619 producer/consumer
-# sequencing approximation (xbits by source IP; source != worker).
+# plus a CVE-2026-109618 OOM-strategy shape.
 # Validate with suricata -T and representative pcaps before deployment.
 # No counting claim and no use-after-free reproduction is implied.
 
@@ -12,8 +11,7 @@ alert http $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"PHP upload progress 
     http.request_body; content:"name="; \
     pcre:"/name=\"PHP_SESSION_UPLOAD_PROGRESS\"/i"; \
     pcre:"/name=\"PHPSESSID\"/i"; \
-    xbits:set,php_up_producer,track ip_src,expire 300; \
-    classtype:web-application-attack; sid:20260001; rev:3;)
+    classtype:web-application-attack; sid:20260001; rev:4;)
 
 # R3: size-only heuristic. A large Content-Length does not establish an OOM,
 # repeated parts, or a vulnerability. Chunked requests lack this header.
@@ -23,8 +21,7 @@ alert http $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"PHP upload progress 
     http.content_type; content:"multipart/form-data"; nocase; startswith; \
     http.content_len; byte_test:0,>=,5242880,0,string,dec; \
     http.request_body; content:"name=\"PHP_SESSION_UPLOAD_PROGRESS\""; nocase; \
-    xbits:set,php_up_producer,track ip_src,expire 300; \
-    classtype:web-application-attack; sid:20260004; rev:3;)
+    classtype:web-application-attack; sid:20260004; rev:4;)
 
 # R2 (>=40 repeated fields) is omitted. detection_filter counts rule matches
 # over time, not occurrences of a field within one request.
@@ -41,12 +38,5 @@ alert http $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"PHP multipart part-h
     reference:url,github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w; \
     classtype:web-application-attack; sid:20260006; rev:1;)
 
-# R6: CVE-2026-109619 approximation — a producer-shaped request followed by a later
-# request from the same source (xbits persist across flows). Source != worker; treat
-# as hunt/observe signal, not proof of same-worker reuse.
-alert http $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"PHP upload-progress producer sentinel: later request from same source"; \
-    flow:established,to_server; \
-    http.method; content:"POST"; \
-    xbits:isset,php_up_producer,track ip_src; \
-    reference:url,github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp; \
-    classtype:web-application-attack; sid:20260007; rev:1;)
+# Same-client-IP sequencing was removed. It neither identifies PHP workers nor
+# proves that the earlier request published stale state.

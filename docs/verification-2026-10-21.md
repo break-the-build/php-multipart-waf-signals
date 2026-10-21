@@ -1,5 +1,11 @@
 # Ten-pass local verification record
 
+## Later source-alignment revision — 2026-10-21
+
+Starting checkout `ee65068ff0186465bf76074accdc19f86f71ee70` passed the existing verification script: 16 Python tests and seven njs mock cases. The reviewed revision changes default actions to observe/count, removes the same-IP Suricata sequence alert, expands njs behavior checks and retires an ineffective AWS 5 MiB `Body` size example. The isolated copy and target checkout each passed 15 Python tests and nine njs mock cases after that retirement (`artifacts/php-uploadprogress-waf-{aws-fix-final,target-aws-final}.*`). `git diff --check` passed after the final rule transfer. The current ten-pass source snapshot and hashes are saved as `artifacts/php-waf-loop-reviewed-files.tar.gz` and `artifacts/php-waf-loop-manifest.txt`. No public target or exploit code was used.
+
+The archived Suricata 7.0.10 `-T` transcript covers the previous four-rule file. This revision contains three Suricata alerts and has **not** received a new engine syntax check or replay. No ModSecurity, nginx/njs-in-situ or AWS policy-outcome validation was performed. The request-only signals remain observational pending those checks and review of benign traffic. See [the current platform matrix](detection-platforms.md).
+
 The fixes were prepared in an isolated local copy and applied to this repository after review. No public target was contacted and no exploit code was run.
 
 | Pass | Check and refinement | Result |

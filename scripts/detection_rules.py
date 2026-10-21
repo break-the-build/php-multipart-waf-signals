@@ -7,6 +7,7 @@ import re
 
 BOUNDARY = re.compile(rb'(?:^|;)\s*boundary=(?:"([^"]+)"|([^;\s]+))', re.I)
 FIELD_NAME = re.compile(rb'(?:^|;)\s*name="([^"]*)"', re.I)
+FORM_DISPOSITION = re.compile(rb'^content-disposition:\s*form-data(?:\s*;|\s*$)', re.I)
 
 STATUS_ARMING = "arming"          # progress name + body SID in one multipart POST
 STATUS_GROOM = "groom"            # repeated t[] parts >= threshold
@@ -24,20 +25,26 @@ OOM_TOTAL_MIN = 524288      # 512 KiB minimum total body before considering the 
 
 
 def _parts(payload: bytes, boundary: bytes):
-    for chunk in payload.split(b'--' + boundary)[1:]:
-        if chunk.startswith(b'--'):
+    # Delimiters are complete MIME lines. Splitting on the boundary token alone
+    # would invent form fields from marker-like bytes inside uploaded files.
+    delimiter = re.compile(rb'(?:\A|\r\n)--' + re.escape(boundary) + rb'(?=\r\n|--)')
+    markers = list(delimiter.finditer(payload))
+    if not markers or markers[0].start() != 0:
+        return
+    for index, marker in enumerate(markers[:-1]):
+        if payload[marker.end():marker.end() + 2] == b'--':
             break
-        chunk = chunk.removeprefix(b'\r\n')
+        chunk = payload[marker.end() + 2:markers[index + 1].start()]
         headers, separator, content = chunk.partition(b'\r\n\r\n')
         if not separator:
             continue
         disposition = next((line for line in headers.split(b'\r\n')
                             if line.lower().startswith(b'content-disposition:')), b'')
-        if not disposition or b'form-data' not in disposition.lower():
+        if not FORM_DISPOSITION.match(disposition):
             continue
         name = FIELD_NAME.search(disposition)
         if name:
-            yield name.group(1), len(content.removesuffix(b'\r\n')), b'filename=' in disposition.lower()
+            yield name.group(1), len(content), b'filename=' in disposition.lower()
 
 
 def _oom_state(parts, payload_size: int) -> bool:

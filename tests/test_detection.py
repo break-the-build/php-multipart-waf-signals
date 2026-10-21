@@ -42,6 +42,18 @@ class DetectionTests(unittest.TestCase):
         altered = BENIGN_UPLOAD.replace(b'D' * 512, b'name="PHPSESSID"' + b'D' * 495)
         self.assertEqual(classify(altered), STATUS_CLEAN)
 
+    def test_boundary_token_inside_file_data_is_not_a_part(self):
+        fake = (b'prefix------b\r\n'
+                b'Content-Disposition: form-data; name="PHPSESSID"\r\n\r\n'
+                b'not-a-real-part')
+        altered = BENIGN_UPLOAD.replace(b'D' * 512, fake + b'D' * 512)
+        self.assertEqual(classify(altered), STATUS_CLEAN)
+
+    def test_non_form_data_disposition_does_not_count_as_field(self):
+        altered = ARMING_SHAPE.replace(b'Content-Disposition: form-data; name="PHPSESSID"',
+                                       b'Content-Disposition: not-form-data; name="PHPSESSID"')
+        self.assertEqual(classify(altered), STATUS_CLEAN)
+
     def test_query_parameter_is_not_a_body_field(self):
         altered = BENIGN_UPLOAD.replace(b'POST /upload.php ', b'POST /upload.php?PHPSESSID=x ', 1)
         self.assertEqual(classify(altered), STATUS_CLEAN)

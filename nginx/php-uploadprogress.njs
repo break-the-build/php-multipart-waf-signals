@@ -1,6 +1,6 @@
-// Use as a js_access handler with njs >= 0.9.9. Benign requests return
-// without calling r.return(), so nginx continues to the normal content handler.
-// Enable only on upload locations after testing the application's forms.
+// Observation-only js_access handler for njs >= 0.9.9. Returning without
+// r.return() lets nginx continue to the normal content handler. Apply only
+// to upload locations after checking normal application traffic.
 
 const LARGE_BODY_BYTES = 5242880;
 const MAX_FORM_KEYS = 512;
@@ -10,22 +10,21 @@ async function checkUploadProgress(r) {
     const contentType = r.headersIn["Content-Type"] || "";
     if (!/^multipart\/form-data(?:;|$)/i.test(contentType)) return;
 
-    // CVE-2026-109618 OOM strategy: multipart POST without a usable declared
-    // Content-Length can keep supplying decoded body data past the pre-read
-    // size gate. Reject early; chunked uploads need an explicit allowlist here.
-    const declared = Number(r.headersIn["Content-Length"]);
-    if (!Number.isFinite(declared) || declared <= 0) {
-        r.log("PHP upload-progress surface: multipart POST without usable Content-Length");
-        r.return(400);
+    // A multipart request without a usable declared length is an advisory
+    // investigation lead, but normal chunked uploads also have this shape.
+    const lengthHeader = r.headersIn["Content-Length"];
+    const declared = typeof lengthHeader === "string" && /^[1-9][0-9]*$/.test(lengthHeader)
+        ? Number(lengthHeader) : NaN;
+    if (!Number.isSafeInteger(declared)) {
+        r.log("PHP multipart request without usable Content-Length; review request limits");
         return;
     }
 
     let form;
     try {
         form = await r.readRequestForm({maxKeys: MAX_FORM_KEYS});
-    } catch (error) {
-        r.log("PHP upload-progress rule could not parse multipart form: " + error);
-        r.return(400);
+    } catch (_) {
+        r.log("PHP upload-progress rule could not parse multipart form");
         return;
     }
 
@@ -33,15 +32,11 @@ async function checkUploadProgress(r) {
 
     if (form.has("PHPSESSID")) {
         r.log("PHP upload-progress field with body session id");
-        r.return(403);
-        return;
     }
 
     // Size-only heuristic; Content-Length is absent for chunked requests.
-    const contentLength = Number(r.headersIn["Content-Length"] || 0);
-    if (Number.isFinite(contentLength) && contentLength >= LARGE_BODY_BYTES) {
+    if (declared >= LARGE_BODY_BYTES) {
         r.log("PHP upload-progress field with large multipart body");
-        r.return(403);
     }
 }
 

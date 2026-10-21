@@ -39,9 +39,9 @@
       ]
     }
   },
-  "Action": {"Block": {}},
+  "Action": {"Count": {}},
   "VisibilityConfig": {
-    "SampledRequestsEnabled": true,
+    "SampledRequestsEnabled": false,
     "CloudWatchMetricsEnabled": true,
     "MetricName": "PHPUPArmingFields"
   }

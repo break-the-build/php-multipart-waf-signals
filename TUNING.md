@@ -12,9 +12,9 @@ The Python classifier recognizes 40 or more `t[]` field-name appearances. No shi
 
 ## Large-body heuristic (R3)
 
-ModSecurity, Suricata, and njs use a 5 MiB body-size surrogate with a progress field. It does not verify memory exhaustion or uniform parts and may flag ordinary large uploads. Scope it to the relevant application paths or leave it alert-only. Suricata's Content-Length check misses chunked requests. AWS R1 uses a limited body window and has no R3 rule here.
+ModSecurity, Suricata and njs use a 5 MiB body-size surrogate with a progress field. It does not verify memory exhaustion or uniform parts and may flag ordinary large uploads. Scope it to the relevant application paths or leave it alert-only. Suricata's Content-Length check misses chunked requests. The former AWS 5 MiB `Body` size example was retired: AWS forwards only an 8–64 KiB inspection window, depending on resource type and configuration, and `CONTINUE` evaluates available body content rather than a full 5 MiB body.
 
-Set body-size and buffering limits to values appropriate for the application; avoid raising them solely to make this heuristic fire. For ModSecurity, check `SecRequestBodyLimit`, `SecRequestBodyNoFilesLimit`, and `INBOUND_DATA_ERROR`. For njs, `readRequestForm()` reads the request body; tune `client_max_body_size` and review memory use. Body parser failures return HTTP 400 in the provided njs handler.
+Set body-size and buffering limits to values appropriate for the application; avoid raising them solely to make this heuristic fire. For ModSecurity, check `SecRequestBodyLimit`, `SecRequestBodyNoFilesLimit`, and `INBOUND_DATA_ERROR`. For njs, `readRequestForm()` reads the request body; tune `client_max_body_size` and review memory use. The njs handler logs parser failures and lets the upstream process the request; it does not interpret a parse failure as an attack.
 
 ## Optional deny-all progress policy (R4)
 
@@ -25,16 +25,8 @@ R4 is commented out in the ModSecurity file. Enable it only after confirming the
 - Run each engine's syntax/configuration validation and record version and result.
 - Replay benign uploads, both-field uploads, large uploads, malformed forms, and chunked requests through a staging instance.
 - Record rule IDs, expected action, actual action, false positives, body-inspection limit, and any parser errors.
-- Reassess these stopgap rules after official PHP advisories and fixed releases are published.
+- Reassess these observations after each PHP runtime upgrade and compare matches with application traffic.
 
-## R6 sequencing window (CVE-2026-109619 approximation)
+## Cross-request investigation
 
-- The published Wiz demo envelope runs 65.2 s end-to-end with a ~48 s dwell between the
-  first (state-publishing) request and the memory-capture/consumer sequence. Our shipped
-  xbits expiry of 300 s covers it with margin. Tune between 120–300 s: shorter loses the
-  demonstrated dwell; longer raises correlation noise from unrelated traffic sharing a
-  source IP (NAT-heavy users).
-- Remember the honest boundary of R6: source IP ≠ worker identity. It is a hunt signal for
-  coordinated sequencing, not evidence a specific worker reused state. Attack-pairing that
-  uses proxies or CDNs (a resolver-churn setup) will also break this approximation — the
-  same caveat as the vendor's "must reach the same worker".
+The former Suricata same-IP sequence rule has been removed. The screenshot's elapsed time is one demonstration, not a defensible detection window, and a client IP cannot identify a PHP worker. If origin telemetry includes worker identity, compare request IDs, worker IDs and fatal-error timing during incident review. Cloudflare's published approach also uses response context; this request-only pack does not provide an equivalent detection.
