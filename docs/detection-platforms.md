@@ -29,6 +29,26 @@ Cloudflare, Akamai, Imperva, Azure WAF, F5, Snort, and Zeek do not have deployab
 
 [Cloudflare's PHP2Shell report](https://blog.cloudflare.com/php-vulnerabilities-waf-protection/) explains why request-only matching is insufficient and describes full-transaction detection using request and response signals. Its [full-transaction article](https://blog.cloudflare.com/full-transaction-waf/) describes response-phase controls. This repository does not replicate those managed detections. The offline [`triage_events.py`](../scripts/triage_events.py) can prioritize a redacted local export with same-transaction and same-worker outcome flags; it is not an inline WAF rule or an exploit validator. For local incident review, correlate multipart anomalies with origin memory-limit/fatal errors, repeated 500 responses, unusual session-cookie behavior and worker restarts. Those are investigation leads from [Wiz's report](https://www.wiz.io/blog/php2shell-php-rce), not independently conclusive indicators. Preserve request ID, origin worker ID if available, status, timestamp and rule match without logging session-cookie values or raw upload contents.
 
+## Response-side and workflow hunt signals (vendor-published, 2026-10-21)
+
+Wiz's technical writeup documents the *response-side* and temporal signals that
+request-only rules cannot express; fold these into your SIEM/hunt around the
+network rules above:
+
+- unusual multipart requests **followed by** memory-limit errors or repeated
+  HTTP 500 responses from the same worker/source;
+- unexpectedly large or malformed `PHPSESSID` response cookies (the confirmed
+  PS(id) disclosure bug encodes reclaimed heap contents URL-encoded into that
+  cookie on a LATER request handled by the same worker);
+- unexplained PHP worker churn (pool recycle patterns beyond your configured
+  `pm.max_requests`).
+
+Role attribution (per the writeup): the upload-progress machinery appears on
+BOTH CVE faces — the pre-init decode is the CVE-2026-109618 producer window,
+and upload-progress is one of the CVE-2026-109619 consumers for other stale
+state families; our R5/R7 shapes detect the strategy, R6 the sequencing
+approximation.
+
 ## Validation status
 
 The Python suite checks the local classifier and structural properties of the shipped files. The Node test exercises the njs handler with mock requests. No actual ModSecurity, nginx/njs, or AWS WAF engine test has run in this repository. Engine validation and benign-traffic replay remain required before operational use.

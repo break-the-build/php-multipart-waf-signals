@@ -1,0 +1,495 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index d60c7a1..95b77e0 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -1,5 +1,13 @@
+ # Changelog
+ 
++## Unreleased — Wiz, Google and Cloudflare source-alignment pass
++
++- Reconciled Wiz's named PHP2Shell variants with PHP's broader advisories and Google Cloud's fixed-version guidance. Documented that the WordPress OPcache demonstration is outside this upload-progress rule pack's coverage.
++- Changed the AWS examples to `Count`, ModSecurity R1/R3 to `pass,log`, and njs to observation-only logging. Parser failures and absent Content-Length no longer cause njs to reject requests by default.
++- Removed Suricata's same-source-IP follow-up alert. It could not establish same-worker reuse or a stale-state producer and could create substantial noise behind NAT or proxies.
++- Added Cloudflare's request-plus-response detection model to the platform guide, with origin telemetry suggestions for incident review. Corrected the Suricata validation status: the archived `-T` transcript applies to the previous four-rule file, not this revision.
++- Expanded mock and structural checks. Staging engine validation and benign-traffic replay remain pending.
++
+ ## 1.2.0 — 2026-10-21 (official advisory day)
+ 
+ - Added the official patch-day mapping: CVE-2026-109618 (OOM `longjmp`
+diff --git a/README.md b/README.md
+index 5bac2a2..57694ae 100644
+--- a/README.md
++++ b/README.md
+@@ -1,17 +1,17 @@
+ # PHP upload-progress request-shape rules
+ 
+-Defensive WAF and IDS examples for deployments reviewing PHP's `session.upload_progress` feature. As of the official PHP security release of 2026-10-21 14:00 UTC, CVE-2026-109619 maps to a *stale global state* consumer class that includes the session upload-progress lifecycle (an upstream-confirmed producer/consumer window running before normal initialization), and CVE-2026-109618 maps to a distinct OOM/`longjmp` corruption class that this feature is not required for. Local PHP research demonstrated a stale top-level cached-pointer write and negative ASan/UBSan runs for the cached-pointer path — that specific chain is not the released fix's mechanism.
++Defensive WAF and IDS examples for deployments reviewing PHP's `session.upload_progress` feature. The [PHP advisories](https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp) describe a cross-request session upload-progress path under CVE-2026-109619 and a distinct OOM/`longjmp` class under [CVE-2026-109618](https://github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w). [Wiz Research](https://www.wiz.io/blog/php2shell-php-rce) also reports an upload-progress unserializer variant in its 109618 grouping and a WordPress OPcache variant in its 109619 grouping. The request shapes in this repository have **not** been validated as signatures for any of those variants. Local PHP research demonstrated a stale cached-pointer write but no sanitizer-detected use-after-free access for that separate observation.
+ 
+-These rules identify traffic patterns for investigation. They are not a substitute for a PHP security update or proof that a request is malicious.
++These rules identify traffic patterns for investigation and now default to observation. They are not a substitute for a PHP security update or proof that a request is malicious. The WordPress/OPcache, fatal-error-backtrace and other non-upload paths can occur without the fields matched here.
+ 
+ ## Shipped rules
+ 
+ | File | Scope | Status |
+ |---|---|---|
+-| [`modsecurity/php-uploadprogress.conf`](modsecurity/php-uploadprogress.conf) | Parsed multipart field names, plus an optional size heuristic | Needs ModSecurity v3/connector validation. R4 deny-all is commented out. |
+-| [`suricata/php-uploadprogress.rules`](suricata/php-uploadprogress.rules) | Field-name pair, size heuristic, plus CVE-2026-109618 OOM-strategy shapes (header-storm, no-usable-Content-Length) and a CVE-2026-109619 producer/consumer sequencing approximation (xbits by source) | `suricata -T` SYNTAX-CLEAN on Suricata 7.0.10 for the current four-rule file (transcript: `suricata/syntax-check-suricata7.txt`). Traffic replay still pending. No counting claims. |
+-| [`nginx/php-uploadprogress.njs`](nginx/php-uploadprogress.njs) | njs `js_access` handler using parsed multipart fields | Mock-tested; needs nginx/njs staging validation. |
+-| [`aws/php-uploadprogress-r1.json`](aws/php-uploadprogress-r1.json), [`aws/php-uploadprogress-oom.json`](aws/php-uploadprogress-oom.json) | AWS WAF v2 field-name pair; OOM body-probe additions (method + multipart + progress field + body > 5 MiB) | JSON and structural tests pass; AWS API validation pending. |
++| [`modsecurity/php-uploadprogress.conf`](modsecurity/php-uploadprogress.conf) | Parsed multipart field names, size heuristic and other advisory-inspired observations | R1/R3/R5/R7 log without denial. Needs ModSecurity v3/connector validation. Optional R4 deny-all is commented out. |
++| [`suricata/php-uploadprogress.rules`](suricata/php-uploadprogress.rules) | Field-name pair, size heuristic and multipart part-header inflation alert | Current three-rule file has not been engine-checked. The archived Suricata 7.0.10 syntax transcript applies to the previous four-rule revision. Traffic replay is pending. |
++| [`nginx/php-uploadprogress.njs`](nginx/php-uploadprogress.njs) | Observation-only njs `js_access` handler using parsed multipart fields | Mock-tested; needs nginx/njs staging validation. Logs do not deny requests. |
++| [`aws/php-uploadprogress-r1.json`](aws/php-uploadprogress-r1.json), [`aws/php-uploadprogress-oom.json`](aws/php-uploadprogress-oom.json) | AWS WAF v2 field-name pair and body-size examples | Both now use `Count`. JSON and structural tests pass; AWS API validation pending. |
+ | [`scripts/detection_rules.py`](scripts/detection_rules.py) | Offline inert request classifier | Python unit-tested. This is a model, not a deployed WAF rule. |
+ 
+ [Platform notes](docs/detection-platforms.md) map each rule to its actual coverage. [Tuning guidance](TUNING.md) lists body-inspection and false-positive limits.
+@@ -23,7 +23,7 @@ These rules identify traffic patterns for investigation. They are not a substitu
+ - **R3:** upload-progress field plus a body of at least 5 MiB. This is only a size heuristic, not an OOM detector.
+ - **R4:** optional denial of all progress-field uploads where the application never uses the feature. It is disabled by default and would reject the entire request.
+ 
+-The PHP configuration setting `session.upload_progress.enabled = Off` (enforced administratively, then restart workers) disables progress tracking while ordinary uploads continue. The primary research workspace tested that feature-path control on five local PHP builds. Per the 2026-10-21 advisory this blocks the confirmed upload-progress producing/consuming operations of CVE-2026-109619 and is considered prudent even after patching — but it is NOT a complete mitigation (the OOM class of CVE-2026-109618 is unaffected by it).
++The PHP configuration setting `session.upload_progress.enabled = Off` (enforced administratively, then restart workers) disables progress tracking while ordinary uploads continue. The primary research workspace tested that feature-path control on five local PHP builds. Per PHP's advisory this blocks the confirmed upload-progress producing/consuming operations of CVE-2026-109619, but it is not a complete mitigation for other paths or CVE-2026-109618.
+ 
+ ## Local checks
+ 
+@@ -31,6 +31,7 @@ The PHP configuration setting `session.upload_progress.enabled = Off` (enforced
+ PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
+ node tests/test_njs.mjs
+ python3 -m json.tool aws/php-uploadprogress-r1.json > /dev/null
++python3 -m json.tool aws/php-uploadprogress-oom.json > /dev/null
+ ```
+ 
+ These checks do **not** run a ModSecurity, Suricata, nginx, or AWS engine. Validate configuration and replay representative benign and matching requests in a staging environment before enabling blocking.
+@@ -49,16 +50,16 @@ Use the application's actual location and upstream. `js_access` grants access wh
+ 
+ ## Provenance and limits
+ 
+-The request shapes were informed by local source analysis and an untrusted public writeup. No third-party research code was executed to build this rule pack.
++The request shapes were informed by local source analysis and public advisories. The [source and coverage update](docs/detection-platforms.md) distinguishes the published Wiz/Google research from the local cached-pointer observation. No third-party research code was executed to build this rule pack.
+ 
+ ## Patch-day status (official release 2026-10-21 14:00 UTC)
+ 
+ - Advisories: [GHSA-w8hw-w9fx-j79w](https://github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w) (CVE-2026-109618, OOM `longjmp` corruption) and [GHSA-6wmf-4rv5-p3rp](https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp) (CVE-2026-109619, stale global state; session upload-progress lifecycle confirmed among the affected paths). Release notice: [php.net archive](https://www.php.net/archive/2026.php#2026-10-21-5).
+ - Fixed versions: **8.2.35, 8.3.36, 8.4.27, 8.5.12**; minimal backports exist as `PHP-7.4/8.0/8.1-CVE-2026-109618-109619` branches.
+ - Vendor operational guidance shipped with the advisories (full text at the links): enforce `memory_limit=-1` administratively for the OOM class; keep `post_max_size` conservative and enforce decoded request size at the frontend; do **not** use `RLIMIT_AS`/`RLIMIT_DATA`; consider `pm.max_requests=1`; prefer startup `php.ini`/pool settings over per-request overrides; remove diagnostics from pre-init INI application; on PHP 8.5 set `fatal_error_backtraces=0`; audit with `log_errors=On` and `error_reporting=E_ALL`.
+-- Post-patch rule posture: upstream's fix removes the pre-executor decode/class-resolution machinery these shapes escalated against (see `ext/session/tests/rfc1867_no_user_code.phpt` upstream). Downgrade R1–R3 to observe on patched fleets; R4 remains optional (the vendor itself recommends the INI stopgap for fleets not using progress bars, even post-patch).
++- Post-patch rule posture: keep R1–R3 as observations, and consider optional R4 only for applications that do not use upload progress. Upstream changes early initialization and upload-progress decoding behavior; the local request-shape rules do not demonstrate patch efficacy.
+ - See [docs/verification-2026-10-21.md](docs/verification-2026-10-21.md) for the local verification record and remaining engine-validation gates.
+ 
+-See [docs/detection-platforms.md](docs/detection-platforms.md) for the OOM/sequencing rule notes added on advisory day.
++See [docs/detection-platforms.md](docs/detection-platforms.md) for the current coverage matrix and response-side investigation notes.
+ 
+ License: MIT, see [LICENSE](LICENSE).
+diff --git a/TUNING.md b/TUNING.md
+index 9f53e1a..7fbe79b 100644
+--- a/TUNING.md
++++ b/TUNING.md
+@@ -12,9 +12,9 @@ The Python classifier recognizes 40 or more `t[]` field-name appearances. No shi
+ 
+ ## Large-body heuristic (R3)
+ 
+-ModSecurity, Suricata, and njs use a 5 MiB body-size surrogate with a progress field. It does not verify memory exhaustion or uniform parts and may flag ordinary large uploads. Scope it to the relevant application paths or leave it alert-only. Suricata's Content-Length check misses chunked requests. AWS R1 uses a limited body window and has no R3 rule here.
++ModSecurity, Suricata, njs and the AWS size example use a 5 MiB body-size surrogate with a progress field. It does not verify memory exhaustion or uniform parts and may flag ordinary large uploads. Scope it to the relevant application paths or leave it alert-only. Suricata's Content-Length check misses chunked requests. AWS body inspection is limited, and the AWS size example has not been validated against the service's actual policy outcome.
+ 
+-Set body-size and buffering limits to values appropriate for the application; avoid raising them solely to make this heuristic fire. For ModSecurity, check `SecRequestBodyLimit`, `SecRequestBodyNoFilesLimit`, and `INBOUND_DATA_ERROR`. For njs, `readRequestForm()` reads the request body; tune `client_max_body_size` and review memory use. Body parser failures return HTTP 400 in the provided njs handler.
++Set body-size and buffering limits to values appropriate for the application; avoid raising them solely to make this heuristic fire. For ModSecurity, check `SecRequestBodyLimit`, `SecRequestBodyNoFilesLimit`, and `INBOUND_DATA_ERROR`. For njs, `readRequestForm()` reads the request body; tune `client_max_body_size` and review memory use. The njs handler logs parser failures and lets the upstream process the request; it does not interpret a parse failure as an attack.
+ 
+ ## Optional deny-all progress policy (R4)
+ 
+@@ -25,16 +25,8 @@ R4 is commented out in the ModSecurity file. Enable it only after confirming the
+ - Run each engine's syntax/configuration validation and record version and result.
+ - Replay benign uploads, both-field uploads, large uploads, malformed forms, and chunked requests through a staging instance.
+ - Record rule IDs, expected action, actual action, false positives, body-inspection limit, and any parser errors.
+-- Reassess these stopgap rules after official PHP advisories and fixed releases are published.
+-
+-## R6 sequencing window (CVE-2026-109619 approximation)
+-
+-- The published Wiz demo envelope runs 65.2 s end-to-end with a ~48 s dwell between the
+-  first (state-publishing) request and the memory-capture/consumer sequence. Our shipped
+-  xbits expiry of 300 s covers it with margin. Tune between 120–300 s: shorter loses the
+-  demonstrated dwell; longer raises correlation noise from unrelated traffic sharing a
+-  source IP (NAT-heavy users).
+-- Remember the honest boundary of R6: source IP ≠ worker identity. It is a hunt signal for
+-  coordinated sequencing, not evidence a specific worker reused state. Attack-pairing that
+-  uses proxies or CDNs (a resolver-churn setup) will also break this approximation — the
+-  same caveat as the vendor's "must reach the same worker".
++- Reassess these observations after each PHP runtime upgrade and compare matches with application traffic.
++
++## Cross-request investigation
++
++The former Suricata same-IP sequence rule has been removed. The screenshot's elapsed time is one demonstration, not a defensible detection window, and a client IP cannot identify a PHP worker. If origin telemetry includes worker identity, compare request IDs, worker IDs and fatal-error timing during incident review. Cloudflare's published approach also uses response context; this request-only pack does not provide an equivalent detection.
+diff --git a/aws/php-uploadprogress-oom.json b/aws/php-uploadprogress-oom.json
+index 620f676..c663667 100644
+--- a/aws/php-uploadprogress-oom.json
++++ b/aws/php-uploadprogress-oom.json
+@@ -74,7 +74,7 @@
+     }
+   },
+   "Action": {
+-    "Block": {}
++    "Count": {}
+   },
+   "VisibilityConfig": {
+     "SampledRequestsEnabled": true,
+diff --git a/aws/php-uploadprogress-r1.json b/aws/php-uploadprogress-r1.json
+index 4af009f..80f5a1c 100644
+--- a/aws/php-uploadprogress-r1.json
++++ b/aws/php-uploadprogress-r1.json
+@@ -39,7 +39,7 @@
+       ]
+     }
+   },
+-  "Action": {"Block": {}},
++  "Action": {"Count": {}},
+   "VisibilityConfig": {
+     "SampledRequestsEnabled": true,
+     "CloudWatchMetricsEnabled": true,
+diff --git a/docs/detection-platforms.md b/docs/detection-platforms.md
+index bc349e5..0cf66df 100644
+--- a/docs/detection-platforms.md
++++ b/docs/detection-platforms.md
+@@ -1,36 +1,42 @@
+ # Detection platform notes
+ 
+-These are defensive request-shape heuristics for PHP session upload-progress traffic. Neither the two reported CVE identifiers nor a use-after-free access has been mapped to these shapes by the evidence in this repository. The rules should be evaluated against each application's normal uploads before blocking.
++These are defensive request-shape heuristics for PHP session upload-progress traffic. No rule here has been mapped to a validated exploit transcript for either CVE. The published WordPress demonstration does not establish that its requests contain these fields. Evaluate matches against each application's normal uploads and keep the supplied rules observational.
++
++The [PHP stale-state advisory](https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp) confirms an upload-progress consumer path; [Wiz](https://www.wiz.io/blog/php2shell-php-rce) separately describes an upload-progress unserializer variant under its 109618 grouping, a fatal-error backtrace variant and a WordPress OPcache variant under its 109619 grouping. [Google Cloud](https://cloud.google.com/blog/products/identity-security/responding-to-core-php-vulnerabilities-cve-2026-109618-cve-2026-109619) corroborates the broad CVE classes and fixed versions. This pack covers request shapes near some multipart paths; it does not cover the full set of variants.
+ 
+ | ID | Implemented rule | Meaning | Limit |
+ |---|---|---|---|
+ | R1 | ModSecurity, Suricata, AWS, njs | Multipart POST with both `PHP_SESSION_UPLOAD_PROGRESS` and `PHPSESSID` field names | Field names and body-inspection windows are deployment dependent. |
+ | R2 | Python classifier only | At least 40 repeated `t[]` fields | No native WAF/IDS counting rule is shipped. |
+-| R3 | ModSecurity, Suricata, njs | Progress field plus a body-size surrogate of at least 5 MiB | Size is not evidence of OOM or repeated parts; Suricata needs Content-Length. |
++| R3 | ModSecurity, Suricata, njs, AWS size example | Progress field plus a body-size surrogate of at least 5 MiB | Size is not evidence of OOM or repeated parts; Suricata needs Content-Length and AWS behavior is unvalidated. |
+ | R4 | Optional, commented ModSecurity policy | Deny any upload-progress form on applications that never use it | Denies the entire upload, unlike `session.upload_progress.enabled=Off`. |
+-| R5 | Suricata 20260006, ModSecurity 20260006 | CVE-2026-109618 OOM strategy: >=96 consecutive header lines within multipart part headers (header-storm inflation) | PCRE window limits apply in Suricata; body-inspection caps may miss huge bodies. |
+-| R6 | Suricata 20260007, ModSecurity 20260007, njs | CVE-2026-109619 producer/consumer sequencing: producer-shaped request then later requests from the same source (Suricata xbits by IP; source != worker) | Approximation: correlates source IP, not worker identity; hunt/observe semantics only. |
+-| R7 | Suricata (docs), njs implemented | CVE-2026-109618 strategy: multipart POST without a usable declared Content-Length keeps feeding decoded body data | Suricata-side no-header match requires 8.x syntax and is documented, not shipped. |
++| R5 | Suricata 20260006, ModSecurity 20260006 | Multipart part-header inflation or deeply nested field-name observation | Arbitrary thresholds; no exploit specificity. Suricata PCRE and body-inspection caps require validation. |
++| R6 | Removed from Suricata; no active sequencing rule | Former same-client-IP correlation | An IP address does not identify a PHP worker or show that request-owned state survived. Use worker-aware origin telemetry for investigation. |
++| R7 | ModSecurity and njs; Suricata not shipped | Multipart POST without a usable declared Content-Length | Chunked uploads can be legitimate. Both supplied rules log and allow this shape. |
+ 
+ ## Shipped platform files
+ 
+ - **ModSecurity v3:** [`modsecurity/php-uploadprogress.conf`](../modsecurity/php-uploadprogress.conf) uses the parsed `ARGS_POST_NAMES` collection for multipart form field names. The [v3 reference](https://github.com/owasp-modsecurity/ModSecurity/wiki/Reference-Manual-%28v3.x%29) limits `REQUEST_BODY` to URL-encoded body processing. Validate with the deployed connector and CRS policy. R4 is disabled by default.
+-- **Suricata:** [`suricata/php-uploadprogress.rules`](../suricata/php-uploadprogress.rules) contains alert-only R1 and R3. `detection_filter` counts rule matches across time, so it is not used to infer repeated fields in one request. R3 uses the documented `http.content_len` numeric check and misses chunked requests without Content-Length. Run `suricata -T` and replay representative traffic before enabling.
+-- **nginx njs:** [`nginx/php-uploadprogress.njs`](../nginx/php-uploadprogress.njs) is a `js_access` handler for njs 0.9.9 or newer. `readRequestForm()` parses multipart field names; a handler that returns without `r.return()` grants access. Configure `client_max_body_size` and test body parsing, malformed forms, and ordinary uploads on a staging server. [Official njs module documentation](https://nginx.org/en/docs/http/ngx_http_js_module.html).
+-- **AWS WAF v2:** [`aws/php-uploadprogress-r1.json`](../aws/php-uploadprogress-r1.json) is a rule-shaped R1 JSON example with method, Content-Type, and two body matches. Its `CONTINUE` handling inspects only the configured body window when a request exceeds the limit. The file is checked locally as JSON and for its schema shape, but has not been submitted to AWS `CheckCapacity` or deployed. [AWS Rule API](https://docs.aws.amazon.com/waf/latest/APIReference/API_Rule.html).
++- **Suricata:** [`suricata/php-uploadprogress.rules`](../suricata/php-uploadprogress.rules) contains alert-only R1, R3 and R5. `detection_filter` counts rule matches across time, so it is not used to infer repeated fields in one request. R3 uses the documented `http.content_len` numeric check and misses chunked requests without Content-Length. The current file has not had a fresh engine check; run `suricata -T` and replay representative traffic.
++- **nginx njs:** [`nginx/php-uploadprogress.njs`](../nginx/php-uploadprogress.njs) is an observation-only `js_access` handler for njs 0.9.9 or newer. `readRequestForm()` parses multipart field names; all paths return without `r.return()`. Configure `client_max_body_size` and test body parsing, malformed forms, and ordinary uploads on a staging server. [Official njs module documentation](https://nginx.org/en/docs/http/ngx_http_js_module.html).
++- **AWS WAF v2:** [`aws/php-uploadprogress-r1.json`](../aws/php-uploadprogress-r1.json) and [`aws/php-uploadprogress-oom.json`](../aws/php-uploadprogress-oom.json) are Count examples. `CONTINUE` on the body may miss fields outside the inspection window; the size example's behavior must be checked against actual AWS WAF handling before drawing conclusions. The files are checked locally as JSON and for their schema shape, but have not been submitted to AWS `CheckCapacity` or deployed. [AWS Rule API](https://docs.aws.amazon.com/waf/latest/APIReference/API_Rule.html).
+ 
+ ## Other platforms
+ 
+ Cloudflare, Akamai, Imperva, Azure WAF, F5, Snort, and Zeek do not have deployable rules in this repository. Translate the table above only after checking current vendor syntax, request-body availability, inspection limits, and normal application traffic. Do not treat the former conceptual snippets as tested configurations.
+ 
++## Response and origin telemetry
++
++[Cloudflare's PHP2Shell report](https://blog.cloudflare.com/php-vulnerabilities-waf-protection/) explains why request-only matching is insufficient and describes full-transaction detection using request and response signals. Its [full-transaction article](https://blog.cloudflare.com/full-transaction-waf/) describes response-phase controls. This repository does not replicate those managed detections. For local incident review, correlate multipart anomalies with origin memory-limit/fatal errors, repeated 500 responses, unusual session-cookie behavior and worker restarts. Those are investigation leads from [Wiz's report](https://www.wiz.io/blog/php2shell-php-rce), not independently conclusive indicators. Preserve request ID, origin worker ID if available, status, timestamp and rule match without logging session-cookie values or raw upload contents.
++
+ ## Validation status
+ 
+ The Python suite checks the local classifier and structural properties of the shipped files. The Node test exercises the njs handler with mock requests. No actual ModSecurity, nginx/njs, or AWS WAF engine test has run in this repository. Engine validation and benign-traffic replay remain required before operational use.
+ 
+-**2026-10-21 (post-advisory round):** Suricata `-T` re-run on the CURRENT four-rule file (R1, R3, R5, R6): **4/4 loaded, 0 failed** (Suricata 7.0.10; transcript `suricata/syntax-check-suricata7.txt`). The OOM-strategy shapes (R5/R7) and the sequencing approximation (R6) encode the advisory's named strategies, not a verified exploit path; trigger replay and cross-engine checks remain the gate.
++**2026-10-21 (earlier post-advisory round):** Suricata `-T` loaded the prior four-rule file (R1, R3, R5, R6): 4 loaded, 0 failed (Suricata 7.0.10; transcript `suricata/syntax-check-suricata7.txt`). R6 has since been removed. The current three-rule file still needs `-T` and traffic replay; the archived transcript must not be treated as validation of this revision.
+ 
+ **Version-bounds confirmation (Google Cloud, 2026-10-21):** vulnerable range authoritatively stated as PHP 5.4 through 8.5.11 (patched: 8.5.12/8.4.27/8.3.36/8.2.35; upstream fixes do not cover 8.1 or earlier — GCP summarised; php.net additionally ships minimal backport branches for 7.4/8.0/8.1); impact confirmed as RCE *and memory disclosure*. Disclosure chain: Wiz Research with AI (Gemini) contribution per GCP's writeup.
+ 
+ **Vendor first-party context (Cloudflare, 2026-10-21):** Cloudflare deployed default-included WAF protections at 03:02 UTC (Managed Free Ruleset `77454fe2…`, Managed Ruleset `efb7b8c9…`, seven "Anomalous Execution" rules each, plus a response-side rule in Managed Response Firewall `afffe227…`) and credits Calif.io, Wiz, OpenAI and Quarkslab in the coordinated disclosure; they observed attacker payload mutation against their rules before public disclosure and emphasize full-transaction (request+response) detection for higher-confidence blocking. Our request-only rules complement this layer and do not claim its confidence; see their changelog for the current set.
+ 
+-**2026-10-21 update:** Suricata syntax check completed for the CURRENT shipped rule file: Suricata 7.0.10 `-T` loaded `suricata/php-uploadprogress.rules` with no parse errors or warnings (transcript: `suricata/syntax-check-suricata7.txt`). This still validates syntax only — no trigger replay, so the rules must stay in observation/alert mode until a lab replay is archived. ModSecurity, nginx/njs-in-situ, Snort, and AWS policy-outcome validation remain pending.
++**Current revision:** Python structural tests and njs mock tests pass. Suricata, ModSecurity, nginx/njs-in-situ and AWS policy-outcome validation remain pending. Keep all rules in observation/alert mode until an engine check and benign-traffic replay are archived.
+diff --git a/docs/stale-write-analysis.md b/docs/stale-write-analysis.md
+index e7076a0..4351e1d 100644
+--- a/docs/stale-write-analysis.md
++++ b/docs/stale-write-analysis.md
+@@ -7,7 +7,7 @@ One-command live reproduction (loopback, instrumented print trace):
+ bash /src/harness/demo.sh /src/php-8.4.26/sapi/cli/php /src/php-8.4.26-defensive/sapi/cli/php
+ ```
+ 
+-Recorded run: [`artifacts/stale-write-demo-transcript.txt`](artifacts/stale-write-demo-transcript.txt)
++Recorded run: [`artifacts/stale-write-demo-transcript.txt`](../artifacts/stale-write-demo-transcript.txt)
+ (pinned commit `c31ae58…` / `php-8.4.26`; deterministic ASan addresses).
+ 
+ ## What the trace shows
+@@ -42,35 +42,8 @@ TI destroy old _SESSION tbl=…19f40              <- track_init destroys the old
+   research workspace as a demonstration; it is superseded for the CVE classes by the
+   released upstream patch and kept only as a defect exhibit.
+ 
+-## Vendor demo intel (post-disclosure, from the published Wiz demo frame, 2026-10-21)
++## Published PHP2Shell research (post-disclosure, 2026-10-21)
+ 
+-The tool shown in the coordinated-disclosure demo (php2shell, credited to Wiz Research,
+-v1.5.13) reconstructs the confirmed chain as:
++[Wiz Research](https://www.wiz.io/blog/php2shell-php-rce) reports a WordPress code-execution demonstration and describes several PHP engine variants. [Google Cloud](https://cloud.google.com/blog/products/identity-security/responding-to-core-php-vulnerabilities-cve-2026-109618-cve-2026-109619) corroborates the disclosure and patched versions. The user-provided terminal frame is consistent with the public demonstration, but it does not show the PHP version, SAPI, a full transaction log, or which variant was used. It does not alter the negative sanitizer result for the separate cached-pointer observation above.
+ 
+-1. **Worker capture -> ZendMM map -> image pointers -> PHP global overwrite.**
+-   The disclosure primitive is a *small* live memory window (256 bytes shown), from which
+-   the chain derives the allocator main chunk, module text/rodata image pointers, and a
+-   runtime-resolved write target. No ROP gadgets are used ("GADGETS: none") — the control
+-   primitive is a **PHP global-pointer override**.
+-2. **Write target: `PG(auto_prepend_file)`.** The chain re-points a core global to an
+-   in-memory payload — a *post-exploitation* persistence/execution channel that runs before
+-   application code on the next request. Malware-defense consequence:
+-   - a WAF cannot see this; only process- or transaction-level signals catch it
+-     (worker spawning shells / anomalous execution, per our detection gates;
+-     vendor end-to-end tooling uses response-side full-transaction rules).
+-   - `pm.max_requests=1` (worker recycling) clears any carried-over stale state;
+-   - cgroup kill policy limits persistence to one worker per the vendor note;
+-   - the INI `auto_prepend_file` itself is not the vector (memory-level override);
+-     auditing its configured value still adds little, but watch worker child
+-     process behavior.
+-3. **Timing envelope: 65.2 s end-to-end, with a ~48 s first-stage dwell** before memory
+-   capture — a long producer->consumer interval across requests. Our R6 sequencing rule
+-   (Suricata xbits-by-source, `expire 300`) spans this envelope; operators wanting tighter
+-   windows can tune 120–300 s and remain inside the demonstrated envelope.
+-4. **Pre-auth RCE confirmed** with `uid=33(www-data)` and `/usr/bin/id` used as the
+-   benign fixed-command proof — the demo does not ship a payload of its own beyond the
+-   runtime-resolved override gadget.
+-
+-Defensive reading: nothing here changes our rule semantics; it strengthens the reasoning
+-why our rules stay in observe/alert mode (detection of *opportunity shapes*), while
+-blocking confidence belongs to the PHP update plus transaction- or process-level signals.
++Wiz's WordPress OPcache variant and PHP's broader stale-state producer/consumer cases cannot be recognized reliably from the upload-progress field names alone. The former same-source-IP sequence alert was removed because a source IP does not identify a PHP worker. [Cloudflare](https://blog.cloudflare.com/php-vulnerabilities-waf-protection/) explains that request and response signals together can improve confidence; this pack has request-only rules. Its supplied rules therefore log or count by default. The complete remedy remains updating PHP to a fixed build.
+diff --git a/docs/verification-2026-10-21.md b/docs/verification-2026-10-21.md
+index 1506f81..ade9f28 100644
+--- a/docs/verification-2026-10-21.md
++++ b/docs/verification-2026-10-21.md
+@@ -1,5 +1,11 @@
+ # Ten-pass local verification record
+ 
++## Later source-alignment revision — 2026-10-21
++
++Starting checkout `ee65068ff0186465bf76074accdc19f86f71ee70` passed the existing verification script: 16 Python tests and seven njs mock cases. The reviewed revision changes default actions to observe/count, removes the same-IP Suricata sequence alert and expands njs behavior checks. The isolated copy and target checkout both passed 16 Python tests and nine njs mock cases; output and exit records are stored under `artifacts/verification-wiz-cloudflare-*`. `git diff --check` passed after transfer. No public target or exploit code was used.
++
++The archived Suricata 7.0.10 `-T` transcript covers the previous four-rule file. This revision contains three Suricata alerts and has **not** received a new engine syntax check or replay. No ModSecurity, nginx/njs-in-situ or AWS policy-outcome validation was performed. The request-only signals remain observational pending those checks and review of benign traffic. See [the current platform matrix](detection-platforms.md).
++
+ The fixes were prepared in an isolated local copy and applied to this repository after review. No public target was contacted and no exploit code was run.
+ 
+ | Pass | Check and refinement | Result |
+diff --git a/modsecurity/php-uploadprogress.conf b/modsecurity/php-uploadprogress.conf
+index 886b923..e098f3b 100644
+--- a/modsecurity/php-uploadprogress.conf
++++ b/modsecurity/php-uploadprogress.conf
+@@ -5,7 +5,7 @@
+ 
+ # R1: both form-field names must occur in the same parsed multipart request.
+ SecRule REQUEST_METHOD "@streq POST" \
+-    "id:20260001,phase:2,deny,log,status:403,chain"
++    "id:20260001,phase:2,pass,log,chain"
+     SecRule REQUEST_HEADERS:Content-Type "@rx (?i)^multipart/form-data(?:;|$)" "chain"
+         SecRule ARGS_POST_NAMES "@streq PHP_SESSION_UPLOAD_PROGRESS" "chain"
+             SecRule ARGS_POST_NAMES "@streq PHPSESSID"
+@@ -15,7 +15,7 @@ SecRule REQUEST_METHOD "@streq POST" \
+ 
+ # R3: size-only heuristic, not proof of repeated uniform parts or an OOM.
+ SecRule REQUEST_METHOD "@streq POST" \
+-    "id:20260004,phase:2,deny,log,status:403,chain"
++    "id:20260004,phase:2,pass,log,chain"
+     SecRule REQUEST_HEADERS:Content-Type "@rx (?i)^multipart/form-data(?:;|$)" "chain"
+         SecRule ARGS_POST_NAMES "@streq PHP_SESSION_UPLOAD_PROGRESS" "chain"
+             SecRule REQUEST_BODY_LENGTH "@ge 5242880"
+@@ -34,7 +34,7 @@ SecRule REQUEST_METHOD "@streq POST" \
+ SecRule ARGS_POST_NAMES "@rx ^[A-Za-z0-9_.-]+(?:\[[^\]\[]{0,64}\]){8,}" \
+     "id:20260006,phase:2,pass,log,tag:'phpup/oom-strategy'"
+ 
+-# R6 (CVE-2026-109618 strategy: multipart request without a usable declared
++# R7 (CVE-2026-109618 strategy: multipart request without a usable declared
+ # Content-Length may keep feeding decoded body data past the pre-read gate).
+ SecRule REQUEST_METHOD "@streq POST" \
+     "id:20260007,phase:2,pass,log,tag:'phpup/oom-strategy',chain"
+diff --git a/nginx/php-uploadprogress.njs b/nginx/php-uploadprogress.njs
+index 895c280..a403717 100755
+--- a/nginx/php-uploadprogress.njs
++++ b/nginx/php-uploadprogress.njs
+@@ -1,6 +1,6 @@
+-// Use as a js_access handler with njs >= 0.9.9. Benign requests return
+-// without calling r.return(), so nginx continues to the normal content handler.
+-// Enable only on upload locations after testing the application's forms.
++// Observation-only js_access handler for njs >= 0.9.9. Returning without
++// r.return() lets nginx continue to the normal content handler. Apply only
++// to upload locations after checking normal application traffic.
+ 
+ const LARGE_BODY_BYTES = 5242880;
+ const MAX_FORM_KEYS = 512;
+@@ -10,22 +10,19 @@ async function checkUploadProgress(r) {
+     const contentType = r.headersIn["Content-Type"] || "";
+     if (!/^multipart\/form-data(?:;|$)/i.test(contentType)) return;
+ 
+-    // CVE-2026-109618 OOM strategy: multipart POST without a usable declared
+-    // Content-Length can keep supplying decoded body data past the pre-read
+-    // size gate. Reject early; chunked uploads need an explicit allowlist here.
++    // A multipart request without a usable declared length is an advisory
++    // investigation lead, but normal chunked uploads also have this shape.
+     const declared = Number(r.headersIn["Content-Length"]);
+     if (!Number.isFinite(declared) || declared <= 0) {
+-        r.log("PHP upload-progress surface: multipart POST without usable Content-Length");
+-        r.return(400);
++        r.log("PHP multipart request without usable Content-Length; review request limits");
+         return;
+     }
+ 
+     let form;
+     try {
+         form = await r.readRequestForm({maxKeys: MAX_FORM_KEYS});
+-    } catch (error) {
+-        r.log("PHP upload-progress rule could not parse multipart form: " + error);
+-        r.return(400);
++    } catch (_) {
++        r.log("PHP upload-progress rule could not parse multipart form");
+         return;
+     }
+ 
+@@ -33,15 +30,12 @@ async function checkUploadProgress(r) {
+ 
+     if (form.has("PHPSESSID")) {
+         r.log("PHP upload-progress field with body session id");
+-        r.return(403);
+-        return;
+     }
+ 
+     // Size-only heuristic; Content-Length is absent for chunked requests.
+     const contentLength = Number(r.headersIn["Content-Length"] || 0);
+     if (Number.isFinite(contentLength) && contentLength >= LARGE_BODY_BYTES) {
+         r.log("PHP upload-progress field with large multipart body");
+-        r.return(403);
+     }
+ }
+ 
+diff --git a/scripts/verify.sh b/scripts/verify.sh
+index 62bd7d8..2bc1a62 100755
+--- a/scripts/verify.sh
++++ b/scripts/verify.sh
+@@ -5,4 +5,5 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v
+ node --check --input-type=module < nginx/php-uploadprogress.njs
+ node tests/test_njs.mjs
+ python3 -m json.tool aws/php-uploadprogress-r1.json > /dev/null
++python3 -m json.tool aws/php-uploadprogress-oom.json > /dev/null
+ echo 'Static and mock checks passed. Engine validation remains pending.'
+diff --git a/suricata/php-uploadprogress.rules b/suricata/php-uploadprogress.rules
+index 59f1e3a..5b6d343 100644
+--- a/suricata/php-uploadprogress.rules
++++ b/suricata/php-uploadprogress.rules
+@@ -1,6 +1,5 @@
+ # Provisional alert-only rules for PHP session upload-progress request shapes
+-# plus CVE-2026-109618 OOM-strategy shapes and a CVE-2026-109619 producer/consumer
+-# sequencing approximation (xbits by source IP; source != worker).
++# plus a CVE-2026-109618 OOM-strategy shape.
+ # Validate with suricata -T and representative pcaps before deployment.
+ # No counting claim and no use-after-free reproduction is implied.
+ 
+@@ -12,8 +11,7 @@ alert http $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"PHP upload progress
+     http.request_body; content:"name="; \
+     pcre:"/name=\"PHP_SESSION_UPLOAD_PROGRESS\"/i"; \
+     pcre:"/name=\"PHPSESSID\"/i"; \
+-    xbits:set,php_up_producer,track ip_src,expire 300; \
+-    classtype:web-application-attack; sid:20260001; rev:3;)
++    classtype:web-application-attack; sid:20260001; rev:4;)
+ 
+ # R3: size-only heuristic. A large Content-Length does not establish an OOM,
+ # repeated parts, or a vulnerability. Chunked requests lack this header.
+@@ -23,8 +21,7 @@ alert http $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"PHP upload progress
+     http.content_type; content:"multipart/form-data"; nocase; startswith; \
+     http.content_len; byte_test:0,>=,5242880,0,string,dec; \
+     http.request_body; content:"name=\"PHP_SESSION_UPLOAD_PROGRESS\""; nocase; \
+-    xbits:set,php_up_producer,track ip_src,expire 300; \
+-    classtype:web-application-attack; sid:20260004; rev:3;)
++    classtype:web-application-attack; sid:20260004; rev:4;)
+ 
+ # R2 (>=40 repeated fields) is omitted. detection_filter counts rule matches
+ # over time, not occurrences of a field within one request.
+@@ -41,12 +38,5 @@ alert http $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"PHP multipart part-h
+     reference:url,github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w; \
+     classtype:web-application-attack; sid:20260006; rev:1;)
+ 
+-# R6: CVE-2026-109619 approximation — a producer-shaped request followed by a later
+-# request from the same source (xbits persist across flows). Source != worker; treat
+-# as hunt/observe signal, not proof of same-worker reuse.
+-alert http $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"PHP upload-progress producer sentinel: later request from same source"; \
+-    flow:established,to_server; \
+-    http.method; content:"POST"; \
+-    xbits:isset,php_up_producer,track ip_src; \
+-    reference:url,github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp; \
+-    classtype:web-application-attack; sid:20260007; rev:1;)
++# Same-client-IP sequencing was removed. It neither identifies PHP workers nor
++# proves that the earlier request published stale state.
+diff --git a/tests/test_njs.mjs b/tests/test_njs.mjs
+index ec76f64..4fc1c3d 100644
+--- a/tests/test_njs.mjs
++++ b/tests/test_njs.mjs
+@@ -24,18 +24,31 @@ function request(fields, length = 1000, options = {}) {
+ for (const [fields, length, expected] of [
+     [['file'], 1000, []],
+     [['PHP_SESSION_UPLOAD_PROGRESS'], 1000, []],
+-    [['PHP_SESSION_UPLOAD_PROGRESS', 'PHPSESSID'], 1000, [403]],
++    [['PHP_SESSION_UPLOAD_PROGRESS', 'PHPSESSID'], 1000, []],
+     [['PHP_SESSION_UPLOAD_PROGRESS'], 5242879, []],
+-    [['PHP_SESSION_UPLOAD_PROGRESS'], 5242880, [403]],
++    [['PHP_SESSION_UPLOAD_PROGRESS'], 5242880, []],
+ ]) {
+     const test = request(fields, length);
+     await rules.checkUploadProgress(test.r);
+     assert.deepEqual(test.status, expected);
++    if (fields.includes('PHP_SESSION_UPLOAD_PROGRESS') &&
++        (fields.includes('PHPSESSID') || length >= 5242880)) {
++        assert.ok(test.logs.length > 0);
++    }
+ }
+ const invalid = request([], 1000, {error: true});
+ await rules.checkUploadProgress(invalid.r);
+-assert.deepEqual(invalid.status, [400]);
++assert.deepEqual(invalid.status, []);
++assert.match(invalid.logs[0], /could not parse multipart form/);
+ const get = request(['PHP_SESSION_UPLOAD_PROGRESS'], 1000, {method: 'GET'});
+ await rules.checkUploadProgress(get.r);
+ assert.deepEqual(get.status, []);
+-console.log('njs access-handler behavior: 7/7 passed');
++const missingLength = request(['PHP_SESSION_UPLOAD_PROGRESS'], 0);
++await rules.checkUploadProgress(missingLength.r);
++assert.deepEqual(missingLength.status, []);
++assert.match(missingLength.logs[0], /without usable Content-Length/);
++const pair = request(['PHP_SESSION_UPLOAD_PROGRESS', 'PHPSESSID']);
++await rules.checkUploadProgress(pair.r);
++assert.deepEqual(pair.status, []);
++assert.match(pair.logs[0], /body session id/);
++console.log('njs access-handler behavior: 9/9 passed');
+diff --git a/tests/test_rule_files.py b/tests/test_rule_files.py
+index 3969b0d..8564bc1 100644
+--- a/tests/test_rule_files.py
++++ b/tests/test_rule_files.py
+@@ -17,6 +17,7 @@ class RuleFileTests(unittest.TestCase):
+             self.assertEqual(match['TextTransformations'][0]['Type'],
+                              'LOWERCASE' if 'SingleHeader' in match['FieldToMatch'] else 'NONE')
+         self.assertEqual(rule['VisibilityConfig']['MetricName'], rule['Name'])
++        self.assertEqual(rule['Action'], {'Count': {}})
+ 
+     def test_modsecurity_uses_parsed_multipart_names(self):
+         rules = (ROOT / 'modsecurity/php-uploadprogress.conf').read_text()
+@@ -25,6 +26,8 @@ class RuleFileTests(unittest.TestCase):
+         self.assertIn('SecRule ARGS_POST_NAMES "@streq PHPSESSID"', active)
+         self.assertNotIn('SecRule ARGS_POST_NAMES "@streq t[]"', active)
+         self.assertNotIn('id:20260005', active)
++        self.assertIn('id:20260001,phase:2,pass,log,chain', active)
++        self.assertIn('id:20260004,phase:2,pass,log,chain', active)
+ 
+     def test_aws_oom_rule_combines_method_multipart_progress_and_size(self):
+         rule = json.loads((ROOT / 'aws/php-uploadprogress-oom.json').read_text())
+@@ -34,13 +37,14 @@ class RuleFileTests(unittest.TestCase):
+         for statement in statements[:-1]:
+             self.assertIn('ByteMatchStatement', statement)
+         self.assertIsInstance(statements[-1]['SizeConstraintStatement']['Size'], int)
+-        self.assertEqual(rule['Action'], {'Block': {}})
++        self.assertEqual(rule['Action'], {'Count': {}})
+ 
+     def test_suricata_does_not_use_match_rate_as_part_count(self):
+         rules = (ROOT / 'suricata/php-uploadprogress.rules').read_text()
+         active = '\n'.join(line for line in rules.splitlines() if not line.lstrip().startswith('#'))
+         self.assertNotIn('detection_filter:', active)
+         self.assertIn('byte_test:0,>=,5242880,0,string,dec', active)
++        self.assertNotIn('xbits:', active)
+ 
+ 
+ if __name__ == '__main__':
