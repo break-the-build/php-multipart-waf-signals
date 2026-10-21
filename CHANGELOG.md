@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.2.0 — 2026-10-21 (official advisory day)
+
+- Added the official patch-day mapping: CVE-2026-109618 (OOM `longjmp`
+  corruption; mitigations: enforced `memory_limit=-1`, post_max_size,
+  NOT RLIMIT_AS/DATA) and CVE-2026-109619 (stale global state; the session
+  upload-progress lifecycle is an upstream-confirmed producer/consumer window;
+  mitigation: enforced `session.upload_progress.enabled=0` + restart workers;
+  PHP 8.5 additionally `fatal_error_backtraces=0`).
+- Fixed versions: 8.2.35 / 8.3.36 / 8.4.27 / 8.5.12 (+ backport branches for
+  7.4/8.0/8.1). Advisory links in README.
+- Updated rule-meaning notes: the upload-progress INI control now has vendor
+  attribution as a partial, not complete, mitigation; per the vendor it remains
+  prudent even post-patch for fleets not using progress bars.
+- Post-patch posture: upstream removes the pre-executor decode machinery the
+  shapes rode (`rfc1867_no_user_code.phpt`) — R1-R3 downgrade to observe on
+  patched fleets; R4 stays optional.
+- Suricata `-T` syntax-clean transcript for the current rules file archived.
+
+
 ## Unreleased — rule review and verification pass
 
 - Replaced ModSecurity raw-body checks with multipart `ARGS_POST_NAMES` checks; removed the single-field rule that claimed to count 40 parts. The optional deny-all progress rule is commented out and described as a whole-request block.
