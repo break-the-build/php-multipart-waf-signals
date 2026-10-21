@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — scope clarification
+
+- Clarified that the earlier cached-pointer upload-progress finding was separate from the disclosed CVE-2026-109618 and CVE-2026-109619 vulnerabilities. The rule pack was revised for the published issue classes while retaining observation-only, request-shape semantics.
+
 ## Unreleased — ten-pass practitioner review
 
 - Scored the rule pack against source accuracy, semantics, specificity, coverage, safe deployment, reproducibility and practitioner explanation. Added a runtime-first practitioner guide and a ten-pass evidence record.
