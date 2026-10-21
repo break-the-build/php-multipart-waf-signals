@@ -1,3 +1,9 @@
+# 2026-10-21: Cloudflare full-transaction response-control review
+
+- Documented Cloudflare's newly published managed response firewall and custom response rules, including the exact public protected-admin example, rollout and plan limits, and the response-body inspection limit.
+- Kept PHP2Shell-specific detection with Cloudflare's managed ruleset. The example custom rule is an application access policy, not an exploit signature; its authentication marker requires a trusted gateway.
+- Linked the new practitioner guide from the README and platform matrix. Existing request-only observation rules are unchanged.
+
 # Changelog
 
 ## 1.2.2 — 2026-10-21 (ecosystem sweep round)

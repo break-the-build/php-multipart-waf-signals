@@ -30,6 +30,8 @@ Cloudflare, Akamai, Imperva, Azure WAF, F5, Snort, and Zeek do not have deployab
 
 [Cloudflare's PHP2Shell report](https://blog.cloudflare.com/php-vulnerabilities-waf-protection/) explains why request-only matching is insufficient and describes full-transaction detection using request and response signals. Its [full-transaction article](https://blog.cloudflare.com/full-transaction-waf/) describes response-phase controls. This repository does not replicate those managed detections. The offline [`triage_events.py`](../scripts/triage_events.py) can prioritize a redacted local export with same-transaction and same-worker outcome flags, including a non-multipart fatal/early-INI sequence; it is not an inline WAF rule or an exploit validator. For local incident review, correlate multipart anomalies with origin memory-limit/fatal errors, repeated 500 responses, unusual session-cookie behavior and worker restarts. Those are investigation leads from [Wiz's report](https://www.wiz.io/blog/php2shell-php-rce), not independently conclusive indicators. Preserve request ID, origin worker ID if available, status, timestamp and rule match without logging session-cookie values or raw upload contents.
 
+For the published Cloudflare response-rule example, plan limits, trusted-header caveat, and the distinction between vendor-managed PHP2Shell detection and application access policy, see the [Cloudflare response controls guide](cloudflare-response-controls-2026-10-21.md). No PHP2Shell-specific Cloudflare expression is shipped here: the managed detection logic is not public, and Cloudflare says custom response rules cannot inspect response bodies yet.
+
 ## Response-side and workflow hunt signals (vendor-published, 2026-10-21)
 
 Wiz's technical writeup documents the *response-side* and temporal signals that
@@ -80,6 +82,27 @@ The [public PoC review](public-poc-review-2026-10-21.md) maps the remaining mult
 - Action item for posture: pair this pack's request-side rules with the Corelight
   package (Zeek/behavioral + version inventory) and the response-side indicators in
   TUNING.md; nothing here replaces the runtime update.
+
+## Follow-up surface claims (2026-10-21, unverified — track but do not act yet)
+
+- A public claim (X, same day) states the 8.5.12 patch is *incomplete*: three
+  paths described in the same subsystem survive, notably a
+  **`var_destroy` destructor-reentry UAF** ("3/3 ASAN on 8.5.12, n=1015,
+  identical to 8.5.11"; patch hardened allocations/OOM guards but did not
+  serialize `__destruct` dispatch with `BG(serialize_lock)`; fault site
+  `var_unserializer.c:1906`; CWE-416), plus handler-mismatch and
+  upload-progress key injection (the latter requires an application
+  LFI/include sink).
+- This workspace has NOT verified that claim (third-party, untrusted code
+  declined). Prior evidence continuity: the same `var_destroy` UAF was
+  already flagged pre-patch (the "re-sold under these CVEs" real bug from
+  the public-repo audit), so a surviving variant is consistent and would be
+  a legit follow-up report to the PHP security team.
+- Rule impact: NONE of our shipped rules are invalidated (their detection
+  logic targets request shapes and version inventory, not the fixed CVEs).
+  Keep all rules in observation mode until the follow-up claims are
+  independently verified or newly assigned advisories appear; update this
+  section when the PHP security team or reporter publishes details.
 
 ## Validation status
 

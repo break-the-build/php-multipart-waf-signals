@@ -18,7 +18,7 @@ The updated rules provide **observation-only signals for selected multipart requ
 
 [Platform notes](docs/detection-platforms.md) map each rule to its actual coverage. [Tuning guidance](TUNING.md) lists body-inspection and false-positive limits.
 
-For an operational reading order, start with the [practitioner guide](docs/practitioner-guide.md), [public PoC review and coverage map](docs/public-poc-review-2026-10-21.md), then review the [reliability research](docs/reliability-research-2026-10-21.md), [platform matrix](docs/detection-platforms.md) and [tuning notes](TUNING.md). The latest pass corrects the local multipart Content-Type header gates and adds offline response/origin triage; these improvements do not turn request-shape hits into exploit confirmation.
+For an operational reading order, start with the [practitioner guide](docs/practitioner-guide.md), [public PoC review and coverage map](docs/public-poc-review-2026-10-21.md), then review the [reliability research](docs/reliability-research-2026-10-21.md), [platform matrix](docs/detection-platforms.md), [Cloudflare response controls](docs/cloudflare-response-controls-2026-10-21.md) and [tuning notes](TUNING.md). The latest pass corrects the local multipart Content-Type header gates and adds offline response/origin triage; these improvements do not turn request-shape hits into exploit confirmation.
 
 ## Naming and migration
 

@@ -1,0 +1,124 @@
+=================================================================
+==70871==ERROR: AddressSanitizer: heap-use-after-free on address 0x506000019888 at pc 0xaaaad32f7878 bp 0xfffff6692250 sp 0xfffff6692268
+READ of size 4 at 0x506000019888 thread T0
+    #0 0xaaaad32f7874 in zend_array_count /src/php-8.4.26-ablated/Zend/zend_hash.c:479
+    #1 0xaaaad2894854 in php_var_serialize_intern /src/php-8.4.26/ext/standard/var.c:1325
+    #2 0xaaaad2894ab8 in php_var_serialize /src/php-8.4.26/ext/standard/var.c:1341
+    #3 0xaaaad23b8584 in ps_srlzr_encode_php /src/php-8.4.26-ablated/ext/session/session.c:1106
+    #4 0xaaaad23af918 in php_session_encode /src/php-8.4.26-ablated/ext/session/session.c:274
+    #5 0xaaaad23b1db0 in php_session_save_current_state /src/php-8.4.26-ablated/ext/session/session.c:550
+    #6 0xaaaad23be4c8 in php_session_flush /src/php-8.4.26-ablated/ext/session/session.c:1767
+    #7 0xaaaad23d4674 in php_session_rfc1867_update /src/php-8.4.26-ablated/ext/session/session.c:3236
+    #8 0xaaaad23d8cc8 in php_session_rfc1867_callback /src/php-8.4.26-ablated/ext/session/session.c:3419
+    #9 0xaaaad2951980 in rfc1867_post_handler /src/php-8.4.26-ablated/main/rfc1867.c:1273
+    #10 0xaaaad2954344 in sapi_handle_post /src/php-8.4.26-ablated/main/SAPI.c:164
+    #11 0xaaaad293ccdc in php_default_treat_data /src/php-8.4.26-ablated/main/php_variables.c:498
+    #12 0xaaaad29411d4 in php_auto_globals_create_post /src/php-8.4.26-ablated/main/php_variables.c:818
+    #13 0xaaaad2dd38cc in zend_activate_auto_globals /src/php-8.4.26-ablated/Zend/zend_compile.c:2031
+    #14 0xaaaad294092c in php_hash_environment /src/php-8.4.26-ablated/main/php_variables.c:788
+    #15 0xaaaad2905fdc in php_request_startup /src/php-8.4.26-ablated/main/main.c:1873
+    #16 0xaaaad35aa758 in php_cli_server_request_startup /src/php-8.4.26/sapi/cli/php_cli_server.c:2235
+    #17 0xaaaad35ab7e8 in php_cli_server_dispatch /src/php-8.4.26/sapi/cli/php_cli_server.c:2311
+    #18 0xaaaad35aea68 in php_cli_server_recv_event_read_request /src/php-8.4.26/sapi/cli/php_cli_server.c:2661
+    #19 0xaaaad35afe14 in php_cli_server_do_event_for_each_fd_callback /src/php-8.4.26/sapi/cli/php_cli_server.c:2748
+    #20 0xaaaad359939c in php_cli_server_poller_iter_on_active /src/php-8.4.26/sapi/cli/php_cli_server.c:935
+    #21 0xaaaad35b00a0 in php_cli_server_do_event_for_each_fd /src/php-8.4.26/sapi/cli/php_cli_server.c:2768
+    #22 0xaaaad35b029c in php_cli_server_do_event_loop /src/php-8.4.26/sapi/cli/php_cli_server.c:2780
+    #23 0xaaaad35b0d80 in do_cli_server /src/php-8.4.26/sapi/cli/php_cli_server.c:2912
+    #24 0xaaaad35810bc in main /src/php-8.4.26/sapi/cli/php_cli.c:1325
+    #25 0xffffb3ea2258  (/lib/aarch64-linux-gnu/libc.so.6+0x22258) (BuildId: 5f3926d9963ff284b8173bf3601bbb00c3abad16)
+    #26 0xffffb3ea2338 in __libc_start_main (/lib/aarch64-linux-gnu/libc.so.6+0x22338) (BuildId: 5f3926d9963ff284b8173bf3601bbb00c3abad16)
+    #27 0xaaaad1c15f6c in _start (/src/php-8.4.26-ablated/sapi/cli/php+0x20c5f6c) (BuildId: 14559f63e5970a068fd4aab4c5ee8ebba376f1ef)
+
+0x506000019888 is located 8 bytes inside of 56-byte region [0x506000019880,0x5060000198b8)
+freed by thread T0 here:
+    #0 0xffffb48392b4 in free ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:52
+    #1 0xaaaad2cd4610 in __zend_free /src/php-8.4.26-ablated/Zend/zend_alloc.c:3322
+    #2 0xaaaad2ccefcc in _efree /src/php-8.4.26-ablated/Zend/zend_alloc.c:2750
+    #3 0xaaaad331307c in zend_array_destroy /src/php-8.4.26-ablated/Zend/zend_hash.c:1873
+    #4 0xaaaad354579c in rc_dtor_func /src/php-8.4.26-ablated/Zend/zend_variables.c:57
+    #5 0xaaaad32ef5ac in i_zval_ptr_dtor /src/php-8.4.26-ablated/Zend/zend_variables.h:45
+    #6 0xaaaad33129e0 in zend_array_destroy /src/php-8.4.26-ablated/Zend/zend_hash.c:1850
+    #7 0xaaaad354579c in rc_dtor_func /src/php-8.4.26-ablated/Zend/zend_variables.c:57
+    #8 0xaaaad35454a8 in i_zval_ptr_dtor /src/php-8.4.26-ablated/Zend/zend_variables.h:45
+    #9 0xaaaad3545cac in zend_reference_destroy /src/php-8.4.26-ablated/Zend/zend_variables.c:74
+    #10 0xaaaad354579c in rc_dtor_func /src/php-8.4.26-ablated/Zend/zend_variables.c:57
+    #11 0xaaaad35454a8 in i_zval_ptr_dtor /src/php-8.4.26-ablated/Zend/zend_variables.h:45
+    #12 0xaaaad3545cfc in zval_ptr_dtor /src/php-8.4.26-ablated/Zend/zend_variables.c:84
+    #13 0xaaaad23af1c8 in php_session_track_init /src/php-8.4.26-ablated/ext/session/session.c:259
+    #14 0xaaaad23b1708 in php_session_initialize /src/php-8.4.26-ablated/ext/session/session.c:500
+    #15 0xaaaad23d3ea8 in php_session_rfc1867_update /src/php-8.4.26-ablated/ext/session/session.c:3222
+    #16 0xaaaad23d8cc8 in php_session_rfc1867_callback /src/php-8.4.26-ablated/ext/session/session.c:3419
+    #17 0xaaaad2951980 in rfc1867_post_handler /src/php-8.4.26-ablated/main/rfc1867.c:1273
+    #18 0xaaaad2954344 in sapi_handle_post /src/php-8.4.26-ablated/main/SAPI.c:164
+    #19 0xaaaad293ccdc in php_default_treat_data /src/php-8.4.26-ablated/main/php_variables.c:498
+    #20 0xaaaad29411d4 in php_auto_globals_create_post /src/php-8.4.26-ablated/main/php_variables.c:818
+    #21 0xaaaad2dd38cc in zend_activate_auto_globals /src/php-8.4.26-ablated/Zend/zend_compile.c:2031
+    #22 0xaaaad294092c in php_hash_environment /src/php-8.4.26-ablated/main/php_variables.c:788
+    #23 0xaaaad2905fdc in php_request_startup /src/php-8.4.26-ablated/main/main.c:1873
+    #24 0xaaaad35aa758 in php_cli_server_request_startup /src/php-8.4.26/sapi/cli/php_cli_server.c:2235
+    #25 0xaaaad35ab7e8 in php_cli_server_dispatch /src/php-8.4.26/sapi/cli/php_cli_server.c:2311
+    #26 0xaaaad35aea68 in php_cli_server_recv_event_read_request /src/php-8.4.26/sapi/cli/php_cli_server.c:2661
+    #27 0xaaaad35afe14 in php_cli_server_do_event_for_each_fd_callback /src/php-8.4.26/sapi/cli/php_cli_server.c:2748
+    #28 0xaaaad359939c in php_cli_server_poller_iter_on_active /src/php-8.4.26/sapi/cli/php_cli_server.c:935
+    #29 0xaaaad35b00a0 in php_cli_server_do_event_for_each_fd /src/php-8.4.26/sapi/cli/php_cli_server.c:2768
+
+previously allocated by thread T0 here:
+    #0 0xffffb483a400 in malloc ../../../../src/libsanitizer/asan/asan_malloc_linux.cpp:69
+    #1 0xaaaad2cd4494 in __zend_malloc /src/php-8.4.26-ablated/Zend/zend_alloc.c:3294
+    #2 0xaaaad2ccee40 in _emalloc /src/php-8.4.26-ablated/Zend/zend_alloc.c:2740
+    #3 0xaaaad32f1f5c in _zend_new_array /src/php-8.4.26-ablated/Zend/zend_hash.c:291
+    #4 0xaaaad23d5f9c in php_session_rfc1867_callback /src/php-8.4.26-ablated/ext/session/session.c:3327
+    #5 0xaaaad294f5a0 in rfc1867_post_handler /src/php-8.4.26-ablated/main/rfc1867.c:973
+    #6 0xaaaad2954344 in sapi_handle_post /src/php-8.4.26-ablated/main/SAPI.c:164
+    #7 0xaaaad293ccdc in php_default_treat_data /src/php-8.4.26-ablated/main/php_variables.c:498
+    #8 0xaaaad29411d4 in php_auto_globals_create_post /src/php-8.4.26-ablated/main/php_variables.c:818
+    #9 0xaaaad2dd38cc in zend_activate_auto_globals /src/php-8.4.26-ablated/Zend/zend_compile.c:2031
+    #10 0xaaaad294092c in php_hash_environment /src/php-8.4.26-ablated/main/php_variables.c:788
+    #11 0xaaaad2905fdc in php_request_startup /src/php-8.4.26-ablated/main/main.c:1873
+    #12 0xaaaad35aa758 in php_cli_server_request_startup /src/php-8.4.26/sapi/cli/php_cli_server.c:2235
+    #13 0xaaaad35ab7e8 in php_cli_server_dispatch /src/php-8.4.26/sapi/cli/php_cli_server.c:2311
+    #14 0xaaaad35aea68 in php_cli_server_recv_event_read_request /src/php-8.4.26/sapi/cli/php_cli_server.c:2661
+    #15 0xaaaad35afe14 in php_cli_server_do_event_for_each_fd_callback /src/php-8.4.26/sapi/cli/php_cli_server.c:2748
+    #16 0xaaaad359939c in php_cli_server_poller_iter_on_active /src/php-8.4.26/sapi/cli/php_cli_server.c:935
+    #17 0xaaaad35b00a0 in php_cli_server_do_event_for_each_fd /src/php-8.4.26/sapi/cli/php_cli_server.c:2768
+    #18 0xaaaad35b029c in php_cli_server_do_event_loop /src/php-8.4.26/sapi/cli/php_cli_server.c:2780
+    #19 0xaaaad35b0d80 in do_cli_server /src/php-8.4.26/sapi/cli/php_cli_server.c:2912
+    #20 0xaaaad35810bc in main /src/php-8.4.26/sapi/cli/php_cli.c:1325
+    #21 0xffffb3ea2258  (/lib/aarch64-linux-gnu/libc.so.6+0x22258) (BuildId: 5f3926d9963ff284b8173bf3601bbb00c3abad16)
+    #22 0xffffb3ea2338 in __libc_start_main (/lib/aarch64-linux-gnu/libc.so.6+0x22338) (BuildId: 5f3926d9963ff284b8173bf3601bbb00c3abad16)
+    #23 0xaaaad1c15f6c in _start (/src/php-8.4.26-ablated/sapi/cli/php+0x20c5f6c) (BuildId: 14559f63e5970a068fd4aab4c5ee8ebba376f1ef)
+
+SUMMARY: AddressSanitizer: heap-use-after-free /src/php-8.4.26-ablated/Zend/zend_hash.c:479 in zend_array_count
+Shadow bytes around the buggy address:
+  0x506000019600: 00 00 00 00 fa fa fa fa 00 00 00 00 00 00 00 fa
+  0x506000019680: fa fa fa fa 00 00 00 00 00 00 00 fa fa fa fa fa
+  0x506000019700: 00 00 00 00 00 00 00 fa fa fa fa fa 00 00 00 00
+  0x506000019780: 00 00 00 fa fa fa fa fa 00 00 00 00 00 00 00 fa
+  0x506000019800: fa fa fa fa 00 00 00 00 00 00 00 fa fa fa fa fa
+=>0x506000019880: fd[fd]fd fd fd fd fd fa fa fa fa fa fd fd fd fd
+  0x506000019900: fd fd fd fa fa fa fa fa 00 00 00 00 00 00 00 fa
+  0x506000019980: fa fa fa fa fd fd fd fd fd fd fd fa fa fa fa fa
+  0x506000019a00: 00 00 00 00 00 00 00 00 fa fa fa fa fd fd fd fd
+  0x506000019a80: fd fd fd fa fa fa fa fa fd fd fd fd fd fd fd fd
+  0x506000019b00: fa fa fa fa 00 00 00 00 00 00 05 fa fa fa fa fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==70871==ABORTING

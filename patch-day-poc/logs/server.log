@@ -1,0 +1,38 @@
+[Wed Oct 21 17:50:22 2026] PHP 8.4.26 Development Server (http://127.0.0.1:9577) started
+[Wed Oct 21 17:50:23 2026] 127.0.0.1:35594 Accepted
+[UAFTRACE] CACHE P1=0x51200001a7c0 tbl=0x506000019880 arData=0x51200001a780
+[UAFTRACE] CACHE P2=0x51200001a9c0 tbl=0x5060000199a0 arData=0x51200001a900
+[UAFTRACE] USE  P2(set0)=0x51200001a9c0
+[UAFTRACE] USE  P1(read updfast)=0x51200001a7c0
+[UAFTRACE] USE  P1(read updnext)=0x51200001a7c0
+[UAFTRACE] s_read
+[UAFTRACE] varhash-unserialize-init
+[UAFTRACE] varhash-unserialize-destroy
+[UAFTRACE] decode-result=0 vlen=0
+[UAFTRACE] upd post-init status=2 modptr=0xaaaad3f69b40 moddata=0x504000028e90
+[UAFTRACE] UPD session tbl=0x506000019a60
+[UAFTRACE] UPD addref data tbl=0x506000019880
+[UAFTRACE] flush(status=2, write=1)
+[UAFTRACE] varhash-serialize-init
+[UAFTRACE] varhash-serialize-destroy
+[UAFTRACE] encode-IF ret=0x521000003d00
+[UAFTRACE] s_write key=abl000000000000000000000x len=315 fd=5
+[UAFTRACE] USE  P2(setdata)=0x51200001a9c0 [ev fdata] P1=0x51200001a7c0
+[UAFTRACE] USE  P1(read updfast)=0x51200001a7c0
+[UAFTRACE] USE  P2(setdata)=0x51200001a9c0 [ev fdata] P1=0x51200001a7c0
+[UAFTRACE] USE  P1(read updfast)=0x51200001a7c0
+[UAFTRACE] USE  P1(setfend)=0x51200001a7c0
+[UAFTRACE] USE  P1(read updfast)=0x51200001a7c0
+[UAFTRACE] SEP data ptr=0x50d000001d00 tbl=0x506000019880 rc=1
+[UAFTRACE] SEPDONE data tbl(new)=0x506000019880
+[UAFTRACE] USE  P1(STALE-WRITE end)=0x51200001a7c0
+[UAFTRACE] TI   destroy old _SESSION ref-val:array arrv-tbl=0x506000019a60
+[UAFTRACE] s_read
+[UAFTRACE] varhash-unserialize-init
+[UAFTRACE] varhash-unserialize-destroy
+[UAFTRACE] decode-result=0 vlen=315
+[UAFTRACE] upd post-init status=2 modptr=0xaaaad3f69b40 moddata=0x504000029010
+[UAFTRACE] UPD session tbl=0x506000019d00
+[UAFTRACE] UPD addref data tbl=0x506000019880
+[UAFTRACE] flush(status=2, write=1)
+[UAFTRACE] varhash-serialize-init
