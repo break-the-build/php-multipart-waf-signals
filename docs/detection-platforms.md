@@ -51,6 +51,36 @@ case. R6 was removed: an IP address cannot identify a PHP worker.
 
 The [public PoC review](public-poc-review-2026-10-21.md) maps the remaining multipart and non-multipart gaps to the official advisories. In particular, the OPcache cross-worker variant has no defensible request-only signature here.
 
+## Ecosystem detections and independent reports (sweep round, 2026-10-21 ~17:00 UTC)
+
+- **Corelight Labs released an open-source Zeek + Suricata detection pack** alongside
+  disclosure ([corelight/php2shell-detect](https://github.com/corelight/php2shell-detect),
+  nine behavioral Zeek notice types: PHP_Crash_Sequence, Multipart_Header_Flood (maps to
+  our R5), Large_Form_Key, serialized-token/collision/repetition notices, and a
+  Potentially_Affected_PHP_Version inventory from Server/X-Powered-By banners + Suricata
+  rare-marker + version-cache rules). For the Zeek lane this repository only sketches,
+  the Corelight package is the reference implementation; the version-inventory notices
+  double as patch-review fleet inventory. Adoption recommended before writing our own.
+- **Datadog Security Labs** independently reproduced the CVE-2026-109618 OOM chain on
+  PHP 8.5.11 (unauthenticated POST, command execution during failed-request cleanup,
+  no crash required, ASLR bypassed via calibrated layout built on the memory-disclosure
+  primitive). **Mitigation divergence:** Datadog reports community mitigations such as
+  `session.upload_progress.enabled=0` "don't protect you" — stronger than the vendor
+  advisory's "blocks the confirmed session paths but not other variants". This repo's
+  wording therefore treats the INI stopgap as secondary/partial at best: **the PHP
+  update remains the only complete fix** (also per core devs' public statements).
+- **Fastly** shipped an NGWAF Virtual Patch (Templated Rule) for both CVEs and noted
+  "evidence of active attacks in-the-wild pre-disclosure"; **cPanel** published
+  concrete backport packages for 7.4/8.0/8.1 (ea-php7.4.33-19 / ea-php8.0.30-12 /
+  ea-php8.1.34-5 plus the .35/.36/.27/.12 set); **Check Point/Tenable/SecurityWeek**
+  report ~884k internet-facing hosts advertising PHP ≤ 8.1 (banner-level), and
+  Cloudflare's CTO described "early attacks emerging" against its stopgap rules.
+  **CISA KEV: neither CVE was in the catalog as of 17:07 UTC** (CISA CSV checked) —
+  keep "observed attacks" separate from "KEV-confirmed exploitation".
+- Action item for posture: pair this pack's request-side rules with the Corelight
+  package (Zeek/behavioral + version inventory) and the response-side indicators in
+  TUNING.md; nothing here replaces the runtime update.
+
 ## Validation status
 
 The Python suite checks the local classifier and structural properties of the shipped files. The Node test exercises the njs handler with mock requests. No actual ModSecurity, nginx/njs, or AWS WAF engine test has run in this repository. Engine validation and benign-traffic replay remain required before operational use.

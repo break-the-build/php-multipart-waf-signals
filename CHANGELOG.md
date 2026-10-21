@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.2.2 — 2026-10-21 (ecosystem sweep round)
+- Platform notes updated with the open-source Corelight detection pack
+  (reference implementation for the Zeek lane; version inventory indicator).
+- Mitigation-confidence wording updated after independent reproductions:
+  the PHP update remains the only complete fix; the INI stopgap is partial
+  (vendor-advisory) and independently reported as ineffective against one
+  reproduced chain (Datadog). Backport availability cited (cPanel/TuxCare).
+- KEV status kept as an explicit "not in catalog as of 17:07 UTC" data point,
+  separate from observed attack traffic.
+
+
 ## Unreleased — public PoC audit and broader triage
 
 - Statically inspected three newly found public PoC repositories at pinned revisions. Their cached-pointer and HTTP-error claims lack stock-build sanitizer evidence and do not change CVE attribution. Preserved source snapshots in the companion research workspace.
