@@ -1,0 +1,84 @@
+{
+  "Name": "PHPUPOomBodyProbe",
+  "Priority": 110,
+  "Statement": {
+    "AndStatement": {
+      "Statements": [
+        {
+          "ByteMatchStatement": {
+            "SearchString": "POST",
+            "FieldToMatch": {
+              "Method": {}
+            },
+            "TextTransformations": [
+              {
+                "Priority": 0,
+                "Type": "NONE"
+              }
+            ],
+            "PositionalConstraint": "EXACTLY"
+          }
+        },
+        {
+          "ByteMatchStatement": {
+            "SearchString": "multipart/form-data",
+            "FieldToMatch": {
+              "SingleHeader": {
+                "Name": "content-type"
+              }
+            },
+            "TextTransformations": [
+              {
+                "Priority": 0,
+                "Type": "LOWERCASE"
+              }
+            ],
+            "PositionalConstraint": "CONTAINS"
+          }
+        },
+        {
+          "ByteMatchStatement": {
+            "SearchString": "name=\"PHP_SESSION_UPLOAD_PROGRESS\"",
+            "FieldToMatch": {
+              "Body": {
+                "OversizeHandling": "CONTINUE"
+              }
+            },
+            "TextTransformations": [
+              {
+                "Priority": 0,
+                "Type": "NONE"
+              }
+            ],
+            "PositionalConstraint": "CONTAINS"
+          }
+        },
+        {
+          "SizeConstraintStatement": {
+            "ComparisonOperator": "GT",
+            "Size": 5242880,
+            "FieldToMatch": {
+              "Body": {
+                "OversizeHandling": "CONTINUE"
+              }
+            },
+            "TextTransformations": [
+              {
+                "Priority": 0,
+                "Type": "NONE"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "Action": {
+    "Block": {}
+  },
+  "VisibilityConfig": {
+    "SampledRequestsEnabled": true,
+    "CloudWatchMetricsEnabled": true,
+    "MetricName": "PHPUPOomBodyProbe"
+  }
+}

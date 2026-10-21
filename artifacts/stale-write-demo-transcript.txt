@@ -1,0 +1,34 @@
+
+================ 1. VULNERABLE BUILD — live instrumented trace (PS_UAF_TRACE) ================
+  [vuln] response 637B
+  key trace sequence (from /tmp/demo/vuln.log):
+    [UAFTRACE] CACHE P1=0x51200001a7c0 tbl=0x506000019940 arData=0x51200001a780
+    [UAFTRACE] TI   destroy old _SESSION ref-val:array arrv-tbl=0x506000019b20
+    [UAFTRACE] TI   destroy old _SESSION ref-val:array arrv-tbl=0x506000019d00
+    [UAFTRACE] SEP data ptr=0x50d000001d00 tbl=0x506000019940 rc=2
+    [UAFTRACE] SEPDONE data tbl(new)=0x50600001a1e0
+    [UAFTRACE] USE  P1(STALE-WRITE end)=0x51200001a7c0
+    [UAFTRACE] TI   destroy old _SESSION ref-val:array arrv-tbl=0x506000019f40
+
+================ 2. What the trace means (reference: ext/session/session.c pointers) ================
+  CACHE P1   = pointer cached into table T_old (bytes_processed bucket)
+  SEPDONE    = END-event SEPARATE_ARRAY dup: progress->data now owns T_new
+  STALE-WRITE = cached pointer WRITES into T_old — detached (no owner among live state)
+  TI destroy = T_old (already written stale) is destroyed by track_init
+
+================ 3. PARITY — identical input to the defensive build (candidate fix) ================
+  [defn] response 637B
+  defensive build: cached-pointer path eliminated (no STALE-WRITE in trace)
+  sender response sizes for identical inputs are printed per phase above;
+  full byte-identical parity for larger flows is archived in E-series logs.
+
+================ 4. MITIGATION — session.upload_progress.enabled=Off closes the path entirely ================
+  [mit] response 301B
+  confirmed: with enabled=Off the callback path is never entered (no CACHE/SEP/USE)
+
+================ DEMO COMPLETE ================
+  Logs: /tmp/demo/vuln.log /tmp/demo/def.log /tmp/demo/mit.log
+  Proven: pointer-lifetime defect (stale write into detached table) + silent
+  final-state corruption; candidate fix removes hazard with behavioral parity;
+  mitigation disables the entire callback path.
+  NOT demonstrated here: code execution (see README.md in demo-package).

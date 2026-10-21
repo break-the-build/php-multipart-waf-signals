@@ -8,6 +8,9 @@ These are defensive request-shape heuristics for PHP session upload-progress tra
 | R2 | Python classifier only | At least 40 repeated `t[]` fields | No native WAF/IDS counting rule is shipped. |
 | R3 | ModSecurity, Suricata, njs | Progress field plus a body-size surrogate of at least 5 MiB | Size is not evidence of OOM or repeated parts; Suricata needs Content-Length. |
 | R4 | Optional, commented ModSecurity policy | Deny any upload-progress form on applications that never use it | Denies the entire upload, unlike `session.upload_progress.enabled=Off`. |
+| R5 | Suricata 20260006, ModSecurity 20260006 | CVE-2026-109618 OOM strategy: >=96 consecutive header lines within multipart part headers (header-storm inflation) | PCRE window limits apply in Suricata; body-inspection caps may miss huge bodies. |
+| R6 | Suricata 20260007, ModSecurity 20260007, njs | CVE-2026-109619 producer/consumer sequencing: producer-shaped request then later requests from the same source (Suricata xbits by IP; source != worker) | Approximation: correlates source IP, not worker identity; hunt/observe semantics only. |
+| R7 | Suricata (docs), njs implemented | CVE-2026-109618 strategy: multipart POST without a usable declared Content-Length keeps feeding decoded body data | Suricata-side no-header match requires 8.x syntax and is documented, not shipped. |
 
 ## Shipped platform files
 
@@ -23,5 +26,9 @@ Cloudflare, Akamai, Imperva, Azure WAF, F5, Snort, and Zeek do not have deployab
 ## Validation status
 
 The Python suite checks the local classifier and structural properties of the shipped files. The Node test exercises the njs handler with mock requests. No actual ModSecurity, nginx/njs, or AWS WAF engine test has run in this repository. Engine validation and benign-traffic replay remain required before operational use.
+
+**2026-10-21 (post-advisory round):** Suricata `-T` re-run on the CURRENT four-rule file (R1, R3, R5, R6): **4/4 loaded, 0 failed** (Suricata 7.0.10; transcript `suricata/syntax-check-suricata7.txt`). The OOM-strategy shapes (R5/R7) and the sequencing approximation (R6) encode the advisory's named strategies, not a verified exploit path; trigger replay and cross-engine checks remain the gate.
+
+**Vendor first-party context (Cloudflare, 2026-10-21):** Cloudflare deployed default-included WAF protections at 03:02 UTC (Managed Free Ruleset `77454fe2…`, Managed Ruleset `efb7b8c9…`, seven "Anomalous Execution" rules each, plus a response-side rule in Managed Response Firewall `afffe227…`) and credits Calif.io, Wiz, OpenAI and Quarkslab in the coordinated disclosure; they observed attacker payload mutation against their rules before public disclosure and emphasize full-transaction (request+response) detection for higher-confidence blocking. Our request-only rules complement this layer and do not claim its confidence; see their changelog for the current set.
 
 **2026-10-21 update:** Suricata syntax check completed for the CURRENT shipped rule file: Suricata 7.0.10 `-T` loaded `suricata/php-uploadprogress.rules` with no parse errors or warnings (transcript: `suricata/syntax-check-suricata7.txt`). This still validates syntax only — no trigger replay, so the rules must stay in observation/alert mode until a lab replay is archived. ModSecurity, nginx/njs-in-situ, Snort, and AWS policy-outcome validation remain pending.

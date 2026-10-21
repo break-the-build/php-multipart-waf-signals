@@ -26,6 +26,16 @@ class RuleFileTests(unittest.TestCase):
         self.assertNotIn('SecRule ARGS_POST_NAMES "@streq t[]"', active)
         self.assertNotIn('id:20260005', active)
 
+    def test_aws_oom_rule_combines_method_multipart_progress_and_size(self):
+        rule = json.loads((ROOT / 'aws/php-uploadprogress-oom.json').read_text())
+        self.assertEqual({'Name', 'Priority', 'Statement', 'Action', 'VisibilityConfig'}, set(rule))
+        statements = rule['Statement']['AndStatement']['Statements']
+        self.assertEqual(len(statements), 4)
+        for statement in statements[:-1]:
+            self.assertIn('ByteMatchStatement', statement)
+        self.assertIsInstance(statements[-1]['SizeConstraintStatement']['Size'], int)
+        self.assertEqual(rule['Action'], {'Block': {}})
+
     def test_suricata_does_not_use_match_rate_as_part_count(self):
         rules = (ROOT / 'suricata/php-uploadprogress.rules').read_text()
         active = '\n'.join(line for line in rules.splitlines() if not line.lstrip().startswith('#'))

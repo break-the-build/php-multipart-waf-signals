@@ -10,6 +10,16 @@ async function checkUploadProgress(r) {
     const contentType = r.headersIn["Content-Type"] || "";
     if (!/^multipart\/form-data(?:;|$)/i.test(contentType)) return;
 
+    // CVE-2026-109618 OOM strategy: multipart POST without a usable declared
+    // Content-Length can keep supplying decoded body data past the pre-read
+    // size gate. Reject early; chunked uploads need an explicit allowlist here.
+    const declared = Number(r.headersIn["Content-Length"]);
+    if (!Number.isFinite(declared) || declared <= 0) {
+        r.log("PHP upload-progress surface: multipart POST without usable Content-Length");
+        r.return(400);
+        return;
+    }
+
     let form;
     try {
         form = await r.readRequestForm({maxKeys: MAX_FORM_KEYS});

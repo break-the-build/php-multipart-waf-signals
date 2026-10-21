@@ -3,3 +3,7 @@ i: suricata: Configuration provided was successfully loaded. Exiting.
 Info: detect: 1 rule files processed. 2 rules successfully loaded (current shipped file has 2 rules after the maintainer\x27s count/size fixes), 0 failed, 0
 Info: threshold-config: Threshold config parsed: 0 rule(s) found
 Info: detect: 2 signatures processed. 0 are IP-only rules, 0 are inspecting packet payload, 2 inspect application layer, 0 are decoder event only
+Info: detect: 1 rule files processed. 4 rules successfully loaded, 0 rules failed, 0
+Info: threshold-config: Threshold config parsed: 0 rule(s) found
+Info: detect: 4 signatures processed. 0 are IP-only rules, 0 are inspecting packet payload, 4 inspect application layer, 0 are decoder event only
+Notice: suricata: Configuration provided was successfully loaded. Exiting.
