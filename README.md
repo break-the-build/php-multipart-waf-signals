@@ -46,6 +46,30 @@ Shapes observable on the wire for both the original and corrected models:
 - **Worker-stall** behavior the arm can leave behind (hung decode under
   tight `memory_limit` — availability, not RCE; validated in our lab).
 
+## Supported platforms
+
+Native or template detection rules for the platforms below live in
+[`docs/detection-platforms.md`](docs/detection-platforms.md). Coverage
+references the shapes in "What this protects against":
+
+| Platform | Type | Rules provided | Coverage notes |
+|---|---|---|---|
+| Cloudflare WAF | WAF | R1 arming, R3 OOM, R4 stopgap (expression-language custom rules) | Business/Enterprise for body match; plan-tier body-access limits noted |
+| AWS WAF v2 | WAF | R1 arming (ByteMatch pair on Body), R3 OOM (SizeConstraint surrogate) | default 8 KiB body-inspection window; `OversizeHandling` guidance |
+| Akamai App & API Protector | WAF | R1/R4 custom-rule template | flagged `VALIDATE` — template, not verified against current vendor syntax |
+| Imperva WAF (Cloud/SecureSphere) | WAF | R1/R4 content-condition template | flagged `VALIDATE`; counting rules via Lua where supported |
+| Azure WAF v2 | WAF | R1/R4 custom-rule template | `RequestBody` match requires body-inspect window (~128 KB legacy cap noted) |
+| F5 BIG-IP (ASM / Advanced WAF) | WAF | attack-signature guidance + iRule blocker (R1, R4) | iRule inspects the first 8 KiB window where the arming pair lives |
+| ModSecurity with OWASP CRS | WAF | full set: arming chain, groom counting, OOM arm (20260003), R4 stopgap (20260004) | needs `RequestBodyLimit` ≥ 12 MB for OOM visibility |
+| Snort 3 | NIDS | arming-pair rule (`http_client_body`) | validate parser/request-body depth in your policy |
+| Suricata | NIDS | **canonical rules**: arming (20260001 rev2), groom (20260002 rev2), OOM arm (20260003) | set `http.request-body-limit` ≥ 20 MB for OOM reach |
+| Zeek | NIDS | flow-timing script sketch (`php_up_stall.zeek`) for S3/S5 stall patterns | PROTOTYPE — shadow-stack validation required |
+
+Rule semantics (what each ID encodes, tuning thresholds, false-positive
+boundaries): `TUNING.md`, `scripts/detection_rules.py`, and the layout table
+in the docs pack. The dedicated engine files remain in
+`suricata/`, `modsecurity/`, `nginx/`.
+
 ## Strongest control (verified)
 
 ```
