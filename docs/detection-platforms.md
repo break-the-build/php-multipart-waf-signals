@@ -22,4 +22,6 @@ Cloudflare, Akamai, Imperva, Azure WAF, F5, Snort, and Zeek do not have deployab
 
 ## Validation status
 
-The Python suite checks the local classifier and structural properties of the shipped files. The Node test exercises the njs handler with mock requests. No actual ModSecurity, Suricata, nginx/njs, or AWS WAF engine test has run in this repository. Engine validation and benign-traffic replay remain required before operational use.
+The Python suite checks the local classifier and structural properties of the shipped files. The Node test exercises the njs handler with mock requests. No actual ModSecurity, nginx/njs, or AWS WAF engine test has run in this repository. Engine validation and benign-traffic replay remain required before operational use.
+
+**2026-10-21 update:** Suricata syntax check completed for the CURRENT shipped rule file: Suricata 7.0.10 `-T` loaded `suricata/php-uploadprogress.rules` with no parse errors or warnings (transcript: `suricata/syntax-check-suricata7.txt`). This still validates syntax only — no trigger replay, so the rules must stay in observation/alert mode until a lab replay is archived. ModSecurity, nginx/njs-in-situ, Snort, and AWS policy-outcome validation remain pending.
