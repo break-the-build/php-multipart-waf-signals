@@ -1,0 +1,48 @@
+{
+  "Name": "PHPUPArmingFields",
+  "Priority": 100,
+  "Statement": {
+    "AndStatement": {
+      "Statements": [
+        {
+          "ByteMatchStatement": {
+            "SearchString": "POST",
+            "FieldToMatch": {"Method": {}},
+            "TextTransformations": [{"Priority": 0, "Type": "NONE"}],
+            "PositionalConstraint": "EXACTLY"
+          }
+        },
+        {
+          "ByteMatchStatement": {
+            "SearchString": "multipart/form-data",
+            "FieldToMatch": {"SingleHeader": {"Name": "content-type"}},
+            "TextTransformations": [{"Priority": 0, "Type": "LOWERCASE"}],
+            "PositionalConstraint": "CONTAINS"
+          }
+        },
+        {
+          "ByteMatchStatement": {
+            "SearchString": "name=\"PHP_SESSION_UPLOAD_PROGRESS\"",
+            "FieldToMatch": {"Body": {"OversizeHandling": "CONTINUE"}},
+            "TextTransformations": [{"Priority": 0, "Type": "NONE"}],
+            "PositionalConstraint": "CONTAINS"
+          }
+        },
+        {
+          "ByteMatchStatement": {
+            "SearchString": "name=\"PHPSESSID\"",
+            "FieldToMatch": {"Body": {"OversizeHandling": "CONTINUE"}},
+            "TextTransformations": [{"Priority": 0, "Type": "NONE"}],
+            "PositionalConstraint": "CONTAINS"
+          }
+        }
+      ]
+    }
+  },
+  "Action": {"Block": {}},
+  "VisibilityConfig": {
+    "SampledRequestsEnabled": true,
+    "CloudWatchMetricsEnabled": true,
+    "MetricName": "PHPUPArmingFields"
+  }
+}

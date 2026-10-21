@@ -5,9 +5,8 @@ No execution of any external code, no payload construction: text signatures only
 """
 import re
 
-SIG_PROGRESS = re.compile(rb'(?i)name="PHP_SESSION_UPLOAD_PROGRESS"')
-SIG_BODY_SID = re.compile(rb'(?i)name="PHPSESSID"')
-SIG_T_ARRAY = re.compile(rb'(?i)name="t\[\]"')
+BOUNDARY = re.compile(rb'(?:^|;)\s*boundary=(?:"([^"]+)"|([^;\s]+))', re.I)
+FIELD_NAME = re.compile(rb'(?:^|;)\s*name="([^"]*)"', re.I)
 
 STATUS_ARMING = "arming"          # progress name + body SID in one multipart POST
 STATUS_GROOM = "groom"            # repeated t[] parts >= threshold
@@ -24,29 +23,54 @@ OOM_MIN_PART_SIZE = 131072  # 128 KiB — parts below this are ordinary uploads
 OOM_TOTAL_MIN = 524288      # 512 KiB minimum total body before considering the shape
 
 
-def _oom_state(body: bytes) -> bool:
-    if len(body) < OOM_TOTAL_MIN:
+def _parts(payload: bytes, boundary: bytes):
+    for chunk in payload.split(b'--' + boundary)[1:]:
+        if chunk.startswith(b'--'):
+            break
+        chunk = chunk.removeprefix(b'\r\n')
+        headers, separator, content = chunk.partition(b'\r\n\r\n')
+        if not separator:
+            continue
+        disposition = next((line for line in headers.split(b'\r\n')
+                            if line.lower().startswith(b'content-disposition:')), b'')
+        if not disposition or b'form-data' not in disposition.lower():
+            continue
+        name = FIELD_NAME.search(disposition)
+        if name:
+            yield name.group(1), len(content.removesuffix(b'\r\n')), b'filename=' in disposition.lower()
+
+
+def _oom_state(parts, payload_size: int) -> bool:
+    if payload_size < OOM_TOTAL_MIN:
         return False
-    large = 0
-    for segment in body.split(b'Content-Disposition: form-data; name="', 256):
-        head = segment.lstrip(b'-\r\n')
-        if len(head) >= OOM_MIN_PART_SIZE:
-            large += 1
-    return large >= OOM_MIN_PARTS
+    return sum(not is_file and size >= OOM_MIN_PART_SIZE
+               for _, size, is_file in parts) >= OOM_MIN_PARTS
 
 
 def classify(body: bytes, threshold_t: int = 40) -> str:
-    is_multipart = b"multipart/form-data" in body.lower()
-    if not is_multipart:
+    headers, separator, payload = body.partition(b"\r\n\r\n")
+    if not separator:
         return STATUS_JUNK
-    progress_name = bool(SIG_PROGRESS.search(body))
-    arm = progress_name and bool(SIG_BODY_SID.search(body))
-    groom = len(SIG_T_ARRAY.findall(body)) >= threshold_t
+    lines = headers.split(b"\r\n")
+    if not lines[0].startswith(b"POST "):
+        return STATUS_JUNK
+    content_type = next((line.partition(b':')[2].strip() for line in lines[1:]
+                         if line.lower().startswith(b'content-type:')), b'')
+    if not content_type.lower().startswith(b'multipart/form-data'):
+        return STATUS_JUNK
+    boundary_match = BOUNDARY.search(content_type)
+    if not boundary_match:
+        return STATUS_JUNK
+    parts = list(_parts(payload, boundary_match.group(1) or boundary_match.group(2)))
+    names = [name for name, _, _ in parts]
+    progress_name = b'PHP_SESSION_UPLOAD_PROGRESS' in names
+    arm = progress_name and b'PHPSESSID' in names
+    groom = names.count(b't[]') >= threshold_t
     if groom:
         return STATUS_GROOM
     # S6 requires the progress arm; a plain multi-MB upload without the field
     # is ordinary bulk traffic, not this shape.
-    if progress_name and _oom_state(body):
+    if progress_name and _oom_state(parts, len(payload)):
         return STATUS_OOM
     if arm:
         return STATUS_ARMING

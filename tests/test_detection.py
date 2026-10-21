@@ -31,6 +31,21 @@ class DetectionTests(unittest.TestCase):
     def test_non_multipart_is_junk(self):
         self.assertEqual(classify(b"<html>hello</html>"), STATUS_JUNK)
 
+    def test_non_post_multipart_is_junk(self):
+        self.assertEqual(classify(ARMING_SHAPE.replace(b"POST ", b"GET ", 1)), STATUS_JUNK)
+
+    def test_multipart_word_only_in_payload_is_junk(self):
+        self.assertEqual(classify(b"POST / HTTP/1.1\r\nContent-Type: text/plain\r\n\r\n"
+                                  + ARMING_SHAPE), STATUS_JUNK)
+
+    def test_field_name_text_inside_file_data_is_not_a_field(self):
+        altered = BENIGN_UPLOAD.replace(b'D' * 512, b'name="PHPSESSID"' + b'D' * 495)
+        self.assertEqual(classify(altered), STATUS_CLEAN)
+
+    def test_query_parameter_is_not_a_body_field(self):
+        altered = BENIGN_UPLOAD.replace(b'POST /upload.php ', b'POST /upload.php?PHPSESSID=x ', 1)
+        self.assertEqual(classify(altered), STATUS_CLEAN)
+
     def test_progress_only_body_is_clean(self):
         self.assertEqual(classify(BENIGN_UPLOAD), STATUS_CLEAN)
 

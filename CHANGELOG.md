@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — rule review and verification pass
+
+- Replaced ModSecurity raw-body checks with multipart `ARGS_POST_NAMES` checks; removed the single-field rule that claimed to count 40 parts. The optional deny-all progress rule is commented out and described as a whole-request block.
+- Replaced Suricata's match-rate-as-part-count rules with two alert-only heuristics. The large-body rule now uses a documented numeric Content-Length check at 5 MiB.
+- Reworked nginx logic as an njs 0.9.9+ `js_access` handler using `readRequestForm()`, with explicit allow, deny, and parse-error paths. Added mock behavior tests.
+- Added a structurally valid AWS WAF R1 example and tests for its rule-level fields and text transformations.
+- Corrected the offline classifier's HTTP method and Content-Type checks; narrowed platform claims and documented missing engine validation.
+- Parsed multipart boundaries in the offline classifier so field-like text inside a file's data is not treated as a field name. Removed unvalidated vendor snippets from the active platform guide; Git history retains the earlier drafts.
+
 ## 1.1.0 — 2026-10-21 (pushed ahead of the 14:00 UTC advisory)
 
 Published pre-release notes on timing: the corrected threat model below is a

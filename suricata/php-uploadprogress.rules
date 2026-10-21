@@ -1,46 +1,26 @@
-# PHP session.upload_progress UAF pair (CVE-2026-109618 / CVE-2026-109619)
-# Defensive detection only. No weaponized content.
-# Requires http request-body inspection (MPM) enabled.
+# Provisional alert-only rules for PHP session upload-progress request shapes.
+# Validate with suricata -T and representative pcaps before deployment.
+# No CVE attribution or use-after-free reproduction is implied.
 
-# Stage 1 — arming shape: progress key AND session id inside the same multipart body
-alert http $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"PHP UPLOADPROGRESS arming: progress key + body sid in multipart POST"; \
+# R1: two parsed-looking field names in one inspected multipart body.
+alert http $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"PHP upload progress field with body session id"; \
     flow:established,to_server; \
     http.method; content:"POST"; \
-    http.request_body; \
-    content:"name="; \
-    pcre:"/(?i)name=.PHP_SESSION_UPLOAD_PROGRESS./"; \
-    pcre:"/(?i)name=.PHPSESSID./"; \
-    detection_filter:track by_src, count 1, seconds 60; \
-    classtype:web-application-attack; flowbits:isnotset,up619_dependent; flowbits:set,up619_arming; sid:20260001; rev:1;)
+    http.content_type; content:"multipart/form-data"; nocase; startswith; \
+    http.request_body; content:"name="; \
+    pcre:"/name=\"PHP_SESSION_UPLOAD_PROGRESS\"/i"; \
+    pcre:"/name=\"PHPSESSID\"/i"; \
+    classtype:web-application-attack; sid:20260001; rev:2;)
 
-# Stage 2 — groom shape: many repeated same-named t[] parts (bundle's reclaim stage)
-alert http $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"PHP UPLOADPROGRESS groom: repeated t[] parts >=40"; \
+# R3: size-only heuristic. A large Content-Length does not establish an OOM,
+# repeated parts, or a vulnerability. Chunked requests lack this header.
+alert http $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"PHP upload progress field with large multipart body"; \
     flow:established,to_server; \
     http.method; content:"POST"; \
-    http.request_body; \
-    pcre:"/(?i)name=.t\[\]./"; \
-    detection_filter:track by_dst, count 40, seconds 30; \
-    classtype:web-application-attack; flowbits:isset,up619_arming; sid:20260002; rev:1;)
+    http.content_type; content:"multipart/form-data"; nocase; startswith; \
+    http.content_len; byte_test:0,>=,5242880,0,string,dec; \
+    http.request_body; content:"name=\"PHP_SESSION_UPLOAD_PROGRESS\""; nocase; \
+    classtype:web-application-attack; sid:20260004; rev:2;)
 
-# Stage 2 negative (groom without prior arming in the same flow is high-value standalone too)
-alert http $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"PHP UPLOADPROGRESS groom: repeated t[] parts >=100 standalone"; \
-    flow:established,to_server; \
-    http.method; content:"POST"; \
-    http.request_body; \
-    pcre:"/(?i)name=.t\[\]./"; \
-    detection_filter:track by_dst, count 100, seconds 30; \
-    classtype:web-application-attack; sid:20260003; rev:1;)
-
-# Stage 3 — OOM-churn arm (corrected leak model): progress name in body + very large
-# Content-Length (>= 10,000,000 bytes -> 8 digits). The leak's arm is 20x262144B form
-# fields (~5.2MB) inflating decode/encode churn past memory_limit inside the rfc1867
-# pre-RINIT window. Content-Length is a proxy; chunked variants need the CL header
-# or a body-size-aware analyzer (see TUNING.md). Honest caveat: suricata default
-# request-body-inspection may not reach multi-MB — this rule makes an edge-level
-# detection where the inspection limit permits.
-alert http $EXTERNAL_NET any -> $HOME_NET $HTTP_PORTS (msg:"PHP UPLOADPROGRESS OOM arm: progress key + very large multipart body"; \
-    flow:established,to_server; \
-    http.method; content:"POST"; \
-    http.content_len; pcre:"/^[0-9]{8,}$/"; \
-    http.request_body; content:"PHP_SESSION_UPLOAD_PROGRESS"; nocase; within:8192; \
-    classtype:web-application-attack; sid:20260004; rev:1;)
+# R2 (>=40 repeated fields) is omitted. detection_filter counts rule matches
+# over time, not occurrences of a field within one request.

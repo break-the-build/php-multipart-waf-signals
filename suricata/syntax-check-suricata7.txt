@@ -1,0 +1,2 @@
+i: suricata: This is Suricata version 7.0.10 RELEASE running in SYSTEM mode
+i: suricata: Configuration provided was successfully loaded. Exiting.
